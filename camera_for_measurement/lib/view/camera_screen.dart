@@ -12,68 +12,60 @@ class CameraScreen extends ConsumerStatefulWidget {
 }
 
 class _CameraScreenState extends ConsumerState<CameraScreen> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-
-  @override
-  void initState() {
-    super.initState();
-
-    final camera = ref.read(cameraProvider) as CameraDescription;
-    _controller = CameraController(camera, ResolutionPreset.medium);
-
-    _initializeControllerFuture = _controller.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            // Handle access errors here.
-            break;
-          default:
-            // Handle other errors here.
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('카메라를 사용할 수 없습니다. 사용권한을 확인해 주세요.'),
-              ),
-            );
-            break;
-        }
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (!_controller.value.isInitialized) {
-      return Container();
-    }
+    final state = ref.watch(cameraNotifierProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('사진 촬영하기')),
+      appBar: AppBar(
+        title: const Text('사진 촬영하기'),
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CameraPreview(_controller),
+          Text('$state'),
+          Expanded(
+            child: CameraPreview(
+              ref.read(cameraNotifierProvider.notifier).controller,
+            ),
+          ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           try {
-            await _initializeControllerFuture;
+            final cameraController =
+                ref.read(cameraNotifierProvider.notifier).controller;
 
-            final image = await _controller.takePicture();
+            final image = await cameraController.takePicture().catchError(
+              (Object e) {
+                if (e is CameraException) {
+                  switch (e.code) {
+                    case 'CameraAccessDenied':
+                      // Handle access errors here.
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('카메라를 사용할 수 없습니다. 사용권한을 확인해 주세요.'),
+                        ),
+                      );
+                      break;
+                    default:
+                      // Handle other errors here.
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('에러를 확인해 주세요. $e'),
+                        ),
+                      );
+                      print(e);
+                      break;
+                  }
+                }
+              },
+            );
 
             if (!mounted) return;
 

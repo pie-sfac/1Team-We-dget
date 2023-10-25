@@ -8,7 +8,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cameraProvider);
+    final state = ref.watch(cameraNotifierProvider);
 
     return Scaffold(
       body: Container(
