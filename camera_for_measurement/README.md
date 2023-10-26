@@ -1,16 +1,17 @@
 # camera_for_measurement
 
-A new Flutter project.
+자세측정이 가능한 카메라 패키지를 제작합니다.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+개발기간: 2023-10-25 ~ (WIP)
+작성자: 이신혜
 
-A few resources to get you started if this is your first Flutter project:
+## Dependency
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- camera
+- google_mlkit_pose_detection
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+상태관리
+- riverpod
+

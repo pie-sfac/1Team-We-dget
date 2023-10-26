@@ -1,36 +1,30 @@
 import 'package:camera/camera.dart';
-import 'package:camera_for_measurement/provider/camera_provider.dart';
+import 'package:camera_for_measurement/provider/camera_notifier_provider.dart';
+import 'package:camera_for_measurement/provider/image_provider.dart';
 import 'package:camera_for_measurement/view/preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CameraScreen extends ConsumerStatefulWidget {
+class CameraScreen extends ConsumerWidget {
   const CameraScreen({super.key});
 
   @override
-  ConsumerState<CameraScreen> createState() => _CameraScreenState();
-}
-
-class _CameraScreenState extends ConsumerState<CameraScreen> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(cameraNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('사진 촬영하기'),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('$state'),
-          Expanded(
-            child: CameraPreview(
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text('$state'),
+            CameraPreview(
               ref.read(cameraNotifierProvider.notifier).controller,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
@@ -41,6 +35,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
             final image = await cameraController.takePicture().catchError(
               (Object e) {
+                // ToDo: 에러 케이스 정리
                 if (e is CameraException) {
                   switch (e.code) {
                     case 'CameraAccessDenied':
@@ -67,15 +62,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               },
             );
 
-            if (!mounted) return;
+            ref.read(imageProvider.notifier).state = image;
 
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => PreviewScreen(
-                  imagePath: image.path,
+            if (ref.read(imageProvider.notifier).state != null) {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => PreviewScreen(
+                    imagePath: image.path,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           } catch (e) {
             print(e);
           }
