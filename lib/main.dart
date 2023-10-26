@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wedget/test_page.dart';
+import 'package:wedget/view/page/paint_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: TestPage(),
+      home: PaintPage(),
     );
   }
 }
