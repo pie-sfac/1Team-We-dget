@@ -1,5 +1,6 @@
-import 'package:camera_for_measurement/provider/camera_provider.dart';
+import 'package:camera_for_measurement/provider/camera_notifier_provider.dart';
 import 'package:camera_for_measurement/view/camera_screen.dart';
+import 'package:camera_for_measurement/view/detection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cameraProvider);
+    final state = ref.watch(cameraNotifierProvider);
 
     return Scaffold(
       body: Container(
@@ -32,6 +33,16 @@ class HomeScreen extends ConsumerWidget {
                 },
                 child: Text('카메라 사용하기'),
               ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => DetectionScreen(),
+                  ),
+                );
+              },
+              child: Text('Pose Detection'),
+            ),
           ],
         ),
       ),
