@@ -22,6 +22,16 @@ class CameraNotifier extends StateNotifier<CameraDescription?> {
         : ImageFormatGroup.bgra8888, // for iOS
   );
 
+  toggleCameraLens() {
+    if (cameras.length < 2) return;
+
+    if (controller.description == cameras.first) {
+      controller.setDescription(cameras[1]);
+    } else {
+      controller.setDescription(cameras.first);
+    }
+  }
+
   Future<void> initializeControllerFuture() async {
     controller.initialize();
   }
