@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/provider/camera_notifier_provider.dart';
 import 'package:camera_for_measurement/view/camera_screen.dart';
 import 'package:camera_for_measurement/view/detection_screen.dart';
@@ -19,9 +20,8 @@ class HomeScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (state == null)
-              const Text('사용할 수 있는 카메라가 없습니다.'),
-            Text('[temp] 사용카메라: $state'),
+            if (state == null) const Text('사용할 수 있는 카메라가 없습니다.'),
+            if (state != null) Text('[temp] 사용카메라: $state'),
             if (state != null)
               ElevatedButton(
                 onPressed: () {

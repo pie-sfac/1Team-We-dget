@@ -23,6 +23,12 @@ class CameraScreen extends ConsumerWidget {
             CameraPreview(
               ref.read(cameraNotifierProvider.notifier).controller,
             ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(cameraNotifierProvider.notifier).toggleCameraLens();
+              },
+              child: Text('카메라 방향 바꾸기'),
+            ),
           ],
         ),
       ),
