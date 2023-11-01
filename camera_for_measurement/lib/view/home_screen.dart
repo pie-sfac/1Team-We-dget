@@ -1,37 +1,44 @@
-import 'package:camera_for_measurement/provider/camera_notifier_provider.dart';
-import 'package:camera_for_measurement/view/camera_screen.dart';
+import 'package:camera_for_measurement/common/const/custom_text_styles.dart';
+import 'package:camera_for_measurement/common/const/custom_units.dart';
+import 'package:camera_for_measurement/view/pose_detector_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class Home extends StatelessWidget {
+  const Home({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cameraNotifierProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (state == null) const Text('사용할 수 있는 카메라가 없습니다.'),
-            if (state != null) Text('[temp] 사용카메라: $state'),
-            if (state != null)
+      appBar: AppBar(
+        title: const Text('자세 측정 카메라'),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: CustomUnits.margin,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).push(
+                  Navigator.push(
+                    context,
                     MaterialPageRoute(
-                      builder: (_) => CameraScreen(),
+                      builder: (context) => PoseDetectorView(),
                     ),
                   );
                 },
-                child: Text('카메라 사용하기'),
+                child: Text(
+                  'Pose Detection',
+                  style: CustomTextStyles.Body1,
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
