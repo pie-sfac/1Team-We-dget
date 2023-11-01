@@ -1,3 +1,4 @@
+import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:camera_for_measurement/common/const/custom_text_styles.dart';
 import 'package:camera_for_measurement/common/const/custom_units.dart';
 import 'package:camera_for_measurement/view/pose_detector_view.dart';
@@ -28,13 +29,15 @@ class Home extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PoseDetectorView(),
+                      builder: (context) => const PoseDetectorView(),
                     ),
                   );
                 },
                 child: Text(
                   'Pose Detection',
-                  style: CustomTextStyles.Body1,
+                  style: CustomTextStyles.Body1.copyWith(
+                    color: CustomColors.Gray_50,
+                  ),
                 ),
               ),
             ],

@@ -20,7 +20,7 @@ class PosePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0
+      ..strokeWidth = 2.0
       ..color = Colors.green;
 
     final leftPaint = Paint()
@@ -32,6 +32,11 @@ class PosePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0
       ..color = Colors.blueAccent;
+
+    final connectPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0
+      ..color = Colors.redAccent;
 
     for (final pose in poses) {
       pose.landmarks.forEach((_, landmark) {
@@ -118,6 +123,10 @@ class PosePainter extends CustomPainter {
           PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee, rightPaint);
       paintLine(
           PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle, rightPaint);
+
+      //Connect left and right
+      paintLine(PoseLandmarkType.leftHip, PoseLandmarkType.rightHip, connectPaint);
+      paintLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder, connectPaint);
     }
   }
 
