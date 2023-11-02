@@ -41,6 +41,10 @@ class _CameraViewState extends State<CameraView> {
   double _maxAvailableExposureOffset = 0.0;
   double _currentExposureOffset = 0.0;
   bool _changingCameraLens = false;
+  bool _liveStreamOn = true;
+
+  XFile? imageFile;
+  XFile? videoFile;
 
   @override
   void initState() {
@@ -72,7 +76,16 @@ class _CameraViewState extends State<CameraView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _liveFeedBody());
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light),
+    );
+
+    return Scaffold(
+      body: _liveFeedBody(),
+    );
   }
 
   Widget _liveFeedBody() {
@@ -80,60 +93,70 @@ class _CameraViewState extends State<CameraView> {
     if (_controller == null) return Container();
     if (_controller?.value.isInitialized == false) return Container();
     return Container(
-      color: Colors.grey,
+      color: Colors.black,
       child: Stack(
         children: [
           _changingCameraLens
               ? Center(
-            child: Text(
-              '카메라 렌즈를 바꾸는 중입니다 ...',
-              style: CustomTextStyles.Body1.copyWith(
-                color: CustomColors.Gray_50,
-              ),
-            ),
-          )
+                  child: Text(
+                    '카메라 렌즈를 바꾸는 중입니다 ...',
+                    style: CustomTextStyles.Body1.copyWith(
+                      color: CustomColors.Gray_50,
+                    ),
+                  ),
+                )
               : Center(
-            child: CameraPreview(
-              _controller!,
-              child: widget.customPaint,
-            ),
-          ),
+                  child: CameraPreview(
+                    _controller!,
+                    child: widget.customPaint,
+                  ),
+                ),
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: CustomUnits.buttonMargin),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      _backButton(),
-                      Expanded(
-                        child: _exposureControl(),
-                      ),
-                    ],
+                Container(
+                  color: Colors.black,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: CustomUnits.buttonMargin,
+                      vertical: CustomUnits.buttonMargin / 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        _backButton(),
+                        Expanded(
+                          child: _exposureControl(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Expanded(
                   child: Container(),
                 ),
-                Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: CustomUnits.buttonMargin),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _zoomControl(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: Container()),
-                          Expanded(child: _cameraButton()),
-                          Expanded(child: _switchLiveCameraToggle()),
-                        ],
-                      ),
-                    ],
+                Container(
+                  color: Colors.black,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: CustomUnits.buttonMargin,
+                      vertical: CustomUnits.buttonMargin / 2,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _zoomControl(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(child: _detectionSwitch()),
+                            Expanded(child: _cameraButton()),
+                            Expanded(child: _switchLiveCameraToggle()),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -154,7 +177,7 @@ class _CameraViewState extends State<CameraView> {
           child: Icon(
             Icons.chevron_left,
             color: CustomColors.Gray_50,
-            size: 25,
+            size: 40,
           ),
         ),
       );
@@ -237,37 +260,60 @@ class _CameraViewState extends State<CameraView> {
         ],
       );
 
-  Widget _cameraButton() => SizedBox(
-    height: 70.0,
-    width: 70.0,
-    child: FloatingActionButton(
-      elevation: 0,
-      onPressed: (){},
-      backgroundColor: CustomColors.Primary_300,
-      child: Icon(
-        Icons.fiber_manual_record,
-        color: CustomColors.Gray_50,
-        size: 35,
+  Widget _detectionSwitch() {
+    return SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: Switch(
+        value: _liveStreamOn,
+        activeColor: CustomColors.Primary_500,
+        onChanged: (bool value) {
+          setState(() {
+            _liveStreamOn = !_liveStreamOn;
+            // _liveStreamOn ? _startLiveFeed() : _stopLiveFeed();
+          });
+        },
       ),
-    ),
-  );
+    );
+  }
 
-  Widget _switchLiveCameraToggle() => SizedBox(
-        height: 50.0,
-        width: 50.0,
-        child: FloatingActionButton(
-          elevation: 0,
-          onPressed: _switchLiveCamera,
-          backgroundColor: CustomColors.Primary_300,
-          child: Icon(
-            Platform.isIOS
-                ? Icons.flip_camera_ios_outlined
-                : Icons.flip_camera_android_outlined,
-            color: CustomColors.Gray_50,
-            size: 25,
-          ),
+  Widget _cameraButton() {
+    return SizedBox(
+      height: 70.0,
+      width: 70.0,
+      child: FloatingActionButton(
+        elevation: 0,
+        onPressed: () {
+          _controller?.takePicture();
+        },
+        backgroundColor: CustomColors.Primary_300,
+        child: Icon(
+          Icons.fiber_manual_record,
+          color: CustomColors.Gray_50,
+          size: 60,
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _switchLiveCameraToggle() {
+    return SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        elevation: 0,
+        onPressed: _switchLiveCamera,
+        backgroundColor: CustomColors.Primary_300,
+        child: Icon(
+          Platform.isIOS
+              ? Icons.flip_camera_ios_outlined
+              : Icons.flip_camera_android_outlined,
+          color: CustomColors.Gray_50,
+          size: 25,
+        ),
+      ),
+    );
+  }
 
   Future _startLiveFeed() async {
     final camera = _cameras[_cameraIndex];
@@ -394,5 +440,22 @@ class _CameraViewState extends State<CameraView> {
         bytesPerRow: plane.bytesPerRow, // used only in iOS
       ),
     );
+  }
+
+  void onTakePictureButtonPressed() {
+    _controller?.takePicture().then((XFile? file) {
+      if (mounted) {
+        setState(() {
+          imageFile = file;
+        });
+        if (file != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Picture saved to ${file.path}'),
+            ),
+          );
+        }
+      }
+    });
   }
 }

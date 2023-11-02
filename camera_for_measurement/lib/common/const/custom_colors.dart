@@ -7,4 +7,7 @@ class CustomColors {
   static Color Gray_900 = const Color(0xFF1D1D1D);
   static Color Gray_300 = const Color(0xFFCFCFCF);
   static Color Gray_50 = const Color(0xFFFBFBFB);
+
+  static Color Erro = const Color(0xFFDF291D);
+  static Color Positive = const Color(0xFF1FB881);
 }
