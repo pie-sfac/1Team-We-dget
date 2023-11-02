@@ -7,6 +7,7 @@ import 'package:camera_for_measurement/common/const/custom_units.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CameraView extends StatefulWidget {
   static String get routeName => 'camera';
@@ -108,7 +109,7 @@ class _CameraViewState extends State<CameraView> {
               : Center(
                   child: CameraPreview(
                     _controller!,
-                    child: widget.customPaint,
+                    child: _liveStreamOn ? widget.customPaint : null,
                   ),
                 ),
           SafeArea(
@@ -270,7 +271,9 @@ class _CameraViewState extends State<CameraView> {
         onChanged: (bool value) {
           setState(() {
             _liveStreamOn = !_liveStreamOn;
-            // _liveStreamOn ? _startLiveFeed() : _stopLiveFeed();
+            !_liveStreamOn
+                ? _stopPoseDetector()
+                : _startPoseDetector(_cameras[_cameraIndex]);
           });
         },
       ),
@@ -302,7 +305,7 @@ class _CameraViewState extends State<CameraView> {
       width: 50.0,
       child: FloatingActionButton(
         elevation: 0,
-        onPressed: _switchLiveCamera,
+        onPressed: () => _switchLiveCamera(_cameras[_cameraIndex]),
         backgroundColor: CustomColors.Primary_300,
         child: Icon(
           Platform.isIOS
@@ -352,8 +355,24 @@ class _CameraViewState extends State<CameraView> {
           widget.onCameraLensDirectionChanged!(camera.lensDirection);
         }
       });
+      // _startPoseDetector(camera);
       setState(() {});
     });
+  }
+
+  Future _startPoseDetector(camera) async {
+    _controller?.startImageStream(_processCameraImage).then((value) {
+      if (widget.onCameraFeedReady != null) {
+        widget.onCameraFeedReady!();
+      }
+      if (widget.onCameraLensDirectionChanged != null) {
+        widget.onCameraLensDirectionChanged!(camera.lensDirection);
+      }
+    });
+  }
+
+  Future _stopPoseDetector() async {
+    await _controller?.stopImageStream();
   }
 
   Future _stopLiveFeed() async {
@@ -362,9 +381,14 @@ class _CameraViewState extends State<CameraView> {
     _controller = null;
   }
 
-  Future _switchLiveCamera() async {
+  Future _switchLiveCamera(camera) async {
+    if (!_liveStreamOn) {
+      _liveStreamOn = true;
+      _startPoseDetector(camera);
+    }
+
     setState(() => _changingCameraLens = true);
-    _cameraIndex = (_cameraIndex + 1) % _cameras.length;
+    _cameraIndex =  (_cameraIndex + 1) % _cameras.length;
 
     await _stopLiveFeed();
     await _startLiveFeed();
@@ -443,17 +467,24 @@ class _CameraViewState extends State<CameraView> {
   }
 
   void onTakePictureButtonPressed() {
-    _controller?.takePicture().then((XFile? file) {
+    _controller?.takePicture().then((XFile? file) async {
+      // final String filePath = (await getApplicationDocumentsDirectory()).path;
+
       if (mounted) {
         setState(() {
           imageFile = file;
         });
         if (file != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Picture saved to ${file.path}'),
-            ),
-          );
+          // ToDo
+          // final fileName = file.path;
+          // await file.saveTo('$filePath/$fileName');
+
+          // if (!mounted) return;
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   SnackBar(
+          //     content: Text('Picture saved to ${file.path}'),
+          //   ),
+          // );
         }
       }
     });

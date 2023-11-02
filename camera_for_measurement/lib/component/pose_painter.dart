@@ -148,14 +148,15 @@ class PosePainter extends CustomPainter {
       paintLine(
           PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, dottedPaint);
 
-      var angleKnee = getAngle(
+      //calculate joint angle
+      var angleKneeRight = getAngle(
         pose,
         PoseLandmarkType.rightHip,
         PoseLandmarkType.rightKnee,
         PoseLandmarkType.rightAnkle,
       );
 
-      var angleHip = getAngle(
+      var angleHipRight = getAngle(
         pose,
         PoseLandmarkType.rightShoulder,
         PoseLandmarkType.rightHip,
@@ -164,40 +165,40 @@ class PosePainter extends CustomPainter {
 
       final background = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
+        ..strokeWidth = 2.0
         ..color = Colors.black;
 
-      final builder = ParagraphBuilder(
+      final builder_angleKneeRight = ParagraphBuilder(
         ParagraphStyle(
           textAlign: TextAlign.left,
           fontSize: 12,
           textDirection: TextDirection.ltr,
         ),
       );
-      builder.pushStyle(
+      builder_angleKneeRight.pushStyle(
         ui.TextStyle(
           color: Colors.white,
           background: background,
         ),
       );
-      builder.addText(angleKnee.toStringAsFixed(1));
-      builder.pop();
+      builder_angleKneeRight.addText(angleKneeRight.toStringAsFixed(1));
+      builder_angleKneeRight.pop();
 
-      final builder2 = ParagraphBuilder(
+      final builder_angleHipRight = ParagraphBuilder(
         ParagraphStyle(
           textAlign: TextAlign.left,
           fontSize: 12,
           textDirection: TextDirection.ltr,
         ),
       );
-      builder2.pushStyle(
+      builder_angleHipRight.pushStyle(
         ui.TextStyle(
           color: Colors.white,
           background: background,
         ),
       );
-      builder2.addText(angleHip.toStringAsFixed(1));
-      builder2.pop();
+      builder_angleHipRight.addText(angleHipRight.toStringAsFixed(1));
+      builder_angleHipRight.pop();
 
       final rkJoint = pose.landmarks[PoseLandmarkType.rightKnee]!;
       final rhJoint = pose.landmarks[PoseLandmarkType.rightHip]!;
@@ -218,7 +219,7 @@ class PosePainter extends CustomPainter {
             cameraLensDirection,
           ));
       canvas.drawParagraph(
-        builder.build()..layout(const ParagraphConstraints(width: 100)),
+        builder_angleKneeRight.build()..layout(const ParagraphConstraints(width: 100)),
         textOffset,
       );
 
@@ -238,7 +239,7 @@ class PosePainter extends CustomPainter {
             cameraLensDirection,
           ));
       canvas.drawParagraph(
-        builder2.build()..layout(const ParagraphConstraints(width: 100)),
+        builder_angleHipRight.build()..layout(const ParagraphConstraints(width: 100)),
         textOffset,
       );
     }
