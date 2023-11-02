@@ -28,11 +28,13 @@ class Info {
   List<Offset> offset;
   double size;
   Color color;
+  BlendMode blendMode;
 
   Info(
     this.offset,
     this.size,
     this.color,
+    this.blendMode,
   );
 
   // void add(List<Offset> line) {

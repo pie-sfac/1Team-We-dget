@@ -4,17 +4,17 @@ import 'package:wedget/model/info.dart';
 class MyPainter extends CustomPainter {
   List<Info> lines = [];
   List<Offset> panLine = []; //임시 리스트
+  List<List<Offset>> eraseLine = [];
   List<Offset> offsetList = [];
 
-  double sizes = 3;
+  double sizes = 0.7;
   Color colors = Colors.black;
-  bool eraseMode = false;
+  BlendMode blendModes = BlendMode.srcOver;
 
-  // final Info info;
-  // final List<Offset> panLine;
+  bool eraseMode = false;
+  bool straightMode = false;
+
   final List<Info> undoLines = [];
-  // var path = Path();
-  // // 그림 그리기 작업 기록
 
   MyPainter();
 
@@ -28,6 +28,13 @@ class MyPainter extends CustomPainter {
         ..strokeWidth = info.size
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
+      // ..blendMode = info.blendMode;
+
+      // if (eraseMode) {
+      //   paint.blendMode = BlendMode.clear; // 지우개 모드일 때 이전 그림을 투명하게 처리
+      // } else {
+      //   paint.blendMode = BlendMode.srcOver; // 일반 그리기 모드
+      // }
 
       List<Offset> offsetList = info.offset;
 
@@ -39,7 +46,6 @@ class MyPainter extends CustomPainter {
         }
 
         canvas.drawPath(path, paint);
-        // canvas.restore();
       }
     }
 
@@ -69,6 +75,17 @@ class MyPainter extends CustomPainter {
     return true;
   }
 
+  void eraseModeChange() {
+    eraseMode = !eraseMode;
+    print(eraseMode);
+    eraseMode ? blendModes = BlendMode.srcOut : blendModes = BlendMode.srcOver;
+  }
+
+  void straightModeChange() {
+    straightMode = !straightMode;
+    print(straightMode);
+  }
+
   void undo() {
     if (lines.isNotEmpty) {
       // info에 그려진 마지막 라인을 삭제
@@ -88,6 +105,10 @@ class MyPainter extends CustomPainter {
     }
   }
 
+  void reset() {
+    lines.clear();
+  }
+
   void panStart(Offset offset) {
     panLine.add(offset);
     print(panLine); // Info 객체의 내용을 출력
@@ -101,19 +122,23 @@ class MyPainter extends CustomPainter {
 
   void panEnd() {
     var color = colors;
-    lines.add(Info(panLine, sizes, color));
+    BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
+    if (eraseMode) {
+      eraseLine.add(panLine);
+    } else if (straightMode) {
+      var straightLine = [panLine.first, panLine.last];
+      lines.add(Info(straightLine, sizes, color, blendModes));
+    } else {
+      lines.add(Info(panLine, sizes, color, blendModes));
+    }
     panLine = [];
     print(lines);
     print(panLine);
   }
 
-  // void reset() {
-  //   info.lines.clear();
-  // }
-
   void square(Canvas canvas, Size size) {}
 
-  void straight(Canvas canvas, Size size) {}
+  // void straight(Canvas canvas, Size size) {}
 
   void colorChangeRed() {
     colors = Colors.red;

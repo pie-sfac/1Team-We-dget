@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:wedget/view/widget/my_painter.dart';
 
 class PaintPage extends StatefulWidget {
@@ -14,7 +17,9 @@ class _PaintPageState extends State<PaintPage> {
   MyPainter? painter; // MyPainter 인스턴스를 저장할 변수
 
   bool extended = false;
-  double sliderValue = 0.1;
+  double sliderValue = 0.7;
+
+  XFile? selectedImage;
 
   @override
   void initState() {
@@ -23,48 +28,77 @@ class _PaintPageState extends State<PaintPage> {
   }
 
   Widget build(BuildContext context) {
+    var imagePicker = ImagePicker();
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
-            CustomPaint(
-              painter: painter,
-            ),
             Column(
               children: [
                 Container(
+                  decoration: selectedImage != null
+                      ? BoxDecoration(
+                          image: DecorationImage(
+                            image: FileImage(File(selectedImage!.path)),
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : null,
                   height: 700,
-                  color: Colors.black12,
                   child: GestureDetector(
                     onPanStart: (s) {
+                      // if (painter!.eraseMode) {
+                      //   painter?.eraseStart(s.localPosition);
+                      // } else {
+
                       setState(() {
                         painter?.panStart(s.localPosition);
                       });
+                      // }
                     },
                     onPanUpdate: (s) {
+                      // if (painter!.eraseMode) {
+                      //   painter?.eraseUpdate(s.localPosition);
+                      // } else {
+
                       setState(() {
                         painter?.panUpdate(s.localPosition);
                       });
+
+                      // }
                     },
                     onPanEnd: (details) {
+                      // if (painter!.eraseMode) {
+                      //   painter?.eraseEnd();
+                      // } else {
                       setState(() {
                         painter?.panEnd();
                       });
+                      // }
                     },
                   ),
                 ),
                 Slider(
-                    value: sliderValue,
-                    min: 0.1,
-                    max: 15.0,
-                    divisions: 5,
-                    onChanged: (newValue) {
-                      setState(() {
-                        sliderValue = newValue;
-                        painter?.sizeChange(newValue);
-                      });
-                    })
+                  value: sliderValue,
+                  min: 0.7,
+                  max: 10.0,
+                  divisions: 5,
+                  onChanged: (newValue) {
+                    setState(() {
+                      sliderValue = newValue;
+                      painter?.sizeChange(newValue);
+                    });
+                  },
+                )
               ],
+            ),
+            Container(
+              //여기 바로 업데이트가 안 됨
+              child: GestureDetector(
+                child: CustomPaint(
+                  painter: painter,
+                ),
+              ),
             ),
           ],
         ),
@@ -73,12 +107,16 @@ class _PaintPageState extends State<PaintPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FloatingActionButton.small(
-            onPressed: () {},
+            onPressed: () {
+              painter?.eraseModeChange();
+            },
             child: Icon(Icons.auto_fix_normal_sharp),
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
-            onPressed: () {},
+            onPressed: () {
+              painter?.eraseModeChange();
+            },
             child: Icon(Icons.auto_fix_high),
           ),
           SizedBox(height: 12),
@@ -88,7 +126,12 @@ class _PaintPageState extends State<PaintPage> {
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
-            onPressed: () {},
+            onPressed: () {
+              if (painter!.eraseMode) {
+                painter?.eraseModeChange();
+              }
+              painter?.straightModeChange();
+            },
             child: Icon(Icons.horizontal_rule),
           ),
           SizedBox(height: 12),
@@ -96,6 +139,11 @@ class _PaintPageState extends State<PaintPage> {
             onPressed: () {
               setState(() {
                 painter?.colorChangeRed();
+                if (painter!.eraseMode) {
+                  painter?.eraseModeChange();
+                } else if (painter!.straightMode) {
+                  painter?.straightModeChange();
+                }
               });
             },
             backgroundColor: Colors.red,
@@ -104,7 +152,12 @@ class _PaintPageState extends State<PaintPage> {
           FloatingActionButton.small(
             onPressed: () {
               setState(() {
-                painter?.colorChangeBlack();
+                painter?.colorChangeRed();
+                if (painter!.eraseMode) {
+                  painter?.eraseModeChange();
+                } else if (painter!.straightMode) {
+                  painter?.straightModeChange();
+                }
               });
             },
             backgroundColor: Colors.black,
@@ -133,14 +186,24 @@ class _PaintPageState extends State<PaintPage> {
           FloatingActionButton.small(
             onPressed: () {
               setState(() {
-                // painter?.reset();
+                painter?.reset();
               });
             },
             child: Icon(Icons.refresh),
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
-            onPressed: () {},
+            onPressed: () async {
+              var image =
+                  await imagePicker.pickImage(source: ImageSource.gallery);
+              if (image != null) {
+                print('이미지 선택 완료');
+                selectedImage = image;
+                setState(() {});
+              } else {
+                print('이미지 선택 실패');
+              }
+            },
             child: Icon(Icons.image),
           ),
         ],
