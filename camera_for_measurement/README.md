@@ -15,3 +15,6 @@
 상태관리
 - riverpod
 
+라우터
+- go_router: ^12.0.1
+
