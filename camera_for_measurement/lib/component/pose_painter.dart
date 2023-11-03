@@ -148,101 +148,119 @@ class PosePainter extends CustomPainter {
       paintLine(
           PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, dottedPaint);
 
-      //calculate joint angle
-      var angleKneeRight = getAngle(
-        pose,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-        PoseLandmarkType.rightAnkle,
-      );
 
-      var angleHipRight = getAngle(
+      // Draw angle at important points
+      drawAngle(
+        PoseLandmarkType.rightKnee,
+        getAngle(
+          pose,
+          PoseLandmarkType.rightHip,
+          PoseLandmarkType.rightKnee,
+          PoseLandmarkType.rightAnkle,
+        ),
         pose,
+        size,
+        canvas,
+      );
+      drawAngle(
+        PoseLandmarkType.rightHip,
+        getAngle(
+          pose,
+          PoseLandmarkType.rightShoulder,
+          PoseLandmarkType.rightHip,
+          PoseLandmarkType.rightKnee,
+        ),
+        pose,
+        size,
+        canvas,
+      );
+      drawAngle(
         PoseLandmarkType.rightShoulder,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-      );
-
-      final background = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0
-        ..color = Colors.black;
-
-      final builder_angleKneeRight = ParagraphBuilder(
-        ParagraphStyle(
-          textAlign: TextAlign.left,
-          fontSize: 12,
-          textDirection: TextDirection.ltr,
+        getAngle(
+          pose,
+          PoseLandmarkType.rightElbow,
+          PoseLandmarkType.rightShoulder,
+          PoseLandmarkType.rightHip,
         ),
+        pose,
+        size,
+        canvas,
       );
-      builder_angleKneeRight.pushStyle(
-        ui.TextStyle(
-          color: Colors.white,
-          background: background,
+      drawAngle(
+        PoseLandmarkType.leftKnee,
+        getAngle(
+          pose,
+          PoseLandmarkType.leftHip,
+          PoseLandmarkType.leftKnee,
+          PoseLandmarkType.leftAnkle,
         ),
+        pose,
+        size,
+        canvas,
       );
-      builder_angleKneeRight.addText(angleKneeRight.toStringAsFixed(1));
-      builder_angleKneeRight.pop();
-
-      final builder_angleHipRight = ParagraphBuilder(
-        ParagraphStyle(
-          textAlign: TextAlign.left,
-          fontSize: 12,
-          textDirection: TextDirection.ltr,
+      drawAngle(
+        PoseLandmarkType.leftHip,
+        getAngle(
+          pose,
+          PoseLandmarkType.leftShoulder,
+          PoseLandmarkType.leftHip,
+          PoseLandmarkType.leftKnee,
         ),
+        pose,
+        size,
+        canvas,
       );
-      builder_angleHipRight.pushStyle(
-        ui.TextStyle(
-          color: Colors.white,
-          background: background,
+      drawAngle(
+        PoseLandmarkType.leftShoulder,
+        getAngle(
+          pose,
+          PoseLandmarkType.leftElbow,
+          PoseLandmarkType.leftShoulder,
+          PoseLandmarkType.leftHip,
         ),
-      );
-      builder_angleHipRight.addText(angleHipRight.toStringAsFixed(1));
-      builder_angleHipRight.pop();
-
-      final rkJoint = pose.landmarks[PoseLandmarkType.rightKnee]!;
-      final rhJoint = pose.landmarks[PoseLandmarkType.rightHip]!;
-
-      var textOffset = Offset(
-          translateX(
-            rkJoint.x,
-            size,
-            imageSize,
-            rotation,
-            cameraLensDirection,
-          ),
-          translateY(
-            rkJoint.y,
-            size,
-            imageSize,
-            rotation,
-            cameraLensDirection,
-          ));
-      canvas.drawParagraph(
-        builder_angleKneeRight.build()..layout(const ParagraphConstraints(width: 100)),
-        textOffset,
-      );
-
-      textOffset = Offset(
-          translateX(
-            rhJoint.x,
-            size,
-            imageSize,
-            rotation,
-            cameraLensDirection,
-          ),
-          translateY(
-            rhJoint.y,
-            size,
-            imageSize,
-            rotation,
-            cameraLensDirection,
-          ));
-      canvas.drawParagraph(
-        builder_angleHipRight.build()..layout(const ParagraphConstraints(width: 100)),
-        textOffset,
+        pose,
+        size,
+        canvas,
       );
     }
+  }
+
+  drawAngle(
+    PoseLandmarkType poseLandmarkType,
+    double angle,
+    Pose pose,
+    Size size,
+    Canvas canvas,
+  ) {
+    final background = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = Colors.black;
+
+    final paragraphStyle = ParagraphStyle(
+      textAlign: TextAlign.left,
+      fontSize: 12,
+      textDirection: TextDirection.ltr,
+    );
+
+    var builder = ParagraphBuilder(paragraphStyle);
+    builder.pushStyle(
+      ui.TextStyle(color: Colors.white, background: background),
+    );
+    builder.addText(angle.toStringAsFixed(1));
+    builder.pop();
+
+    final joint = pose.landmarks[poseLandmarkType]!;
+
+    var textOffset = Offset(
+      translateX(joint.x, size, imageSize, rotation, cameraLensDirection),
+      translateY(joint.y, size, imageSize, rotation, cameraLensDirection),
+    );
+
+    canvas.drawParagraph(
+      builder.build()..layout(const ParagraphConstraints(width: 100)),
+      textOffset,
+    );
   }
 
   double getAngle(

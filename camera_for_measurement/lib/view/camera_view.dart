@@ -7,7 +7,6 @@ import 'package:camera_for_measurement/common/const/custom_units.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:path_provider/path_provider.dart';
 
 class CameraView extends StatefulWidget {
   static String get routeName => 'camera';
