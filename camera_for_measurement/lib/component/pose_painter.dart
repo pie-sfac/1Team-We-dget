@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
+import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'coordinates_translator.dart';
@@ -48,10 +49,6 @@ class PosePainter extends CustomPainter {
 
     for (final pose in poses) {
       pose.landmarks.forEach((_, landmark) {
-        // var poseLandMark = pose.landmarks.values as PoseLandmark;
-        // print(
-        //     'Pose: ${poseLandMark.type}, Offset: (${poseLandMark.x}, ${poseLandMark.y}, z: ${poseLandMark.z}, likelihood: ${poseLandMark.likelihood})');
-
         canvas.drawCircle(
             Offset(
               translateX(
@@ -148,80 +145,97 @@ class PosePainter extends CustomPainter {
       paintLine(
           PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, dottedPaint);
 
+      // Calculate angle
+      var angleKneeRight = getAngle(
+        pose,
+        PoseLandmarkType.rightHip,
+        PoseLandmarkType.rightKnee,
+        PoseLandmarkType.rightAnkle,
+      );
+      var angleRightHip = getAngle(
+        pose,
+        PoseLandmarkType.rightShoulder,
+        PoseLandmarkType.rightHip,
+        PoseLandmarkType.rightKnee,
+      );
+      var angleRightShoulder = getAngle(
+        pose,
+        PoseLandmarkType.rightElbow,
+        PoseLandmarkType.rightShoulder,
+        PoseLandmarkType.rightHip,
+      );
+      var angleKneeLeft = getAngle(
+        pose,
+        PoseLandmarkType.leftHip,
+        PoseLandmarkType.leftKnee,
+        PoseLandmarkType.leftAnkle,
+      );
+      var angleLeftHip = getAngle(
+        pose,
+        PoseLandmarkType.leftShoulder,
+        PoseLandmarkType.leftHip,
+        PoseLandmarkType.leftKnee,
+      );
+      var angleLeftShoulder = getAngle(
+        pose,
+        PoseLandmarkType.leftElbow,
+        PoseLandmarkType.leftShoulder,
+        PoseLandmarkType.leftHip,
+      );
 
       // Draw angle at important points
       drawAngle(
         PoseLandmarkType.rightKnee,
-        getAngle(
-          pose,
-          PoseLandmarkType.rightHip,
-          PoseLandmarkType.rightKnee,
-          PoseLandmarkType.rightAnkle,
-        ),
+        angleKneeRight,
         pose,
         size,
         canvas,
       );
       drawAngle(
         PoseLandmarkType.rightHip,
-        getAngle(
-          pose,
-          PoseLandmarkType.rightShoulder,
-          PoseLandmarkType.rightHip,
-          PoseLandmarkType.rightKnee,
-        ),
+        angleRightHip,
         pose,
         size,
         canvas,
       );
       drawAngle(
         PoseLandmarkType.rightShoulder,
-        getAngle(
-          pose,
-          PoseLandmarkType.rightElbow,
-          PoseLandmarkType.rightShoulder,
-          PoseLandmarkType.rightHip,
-        ),
+        angleRightShoulder,
         pose,
         size,
         canvas,
       );
       drawAngle(
         PoseLandmarkType.leftKnee,
-        getAngle(
-          pose,
-          PoseLandmarkType.leftHip,
-          PoseLandmarkType.leftKnee,
-          PoseLandmarkType.leftAnkle,
-        ),
+        angleKneeLeft,
         pose,
         size,
         canvas,
       );
       drawAngle(
         PoseLandmarkType.leftHip,
-        getAngle(
-          pose,
-          PoseLandmarkType.leftShoulder,
-          PoseLandmarkType.leftHip,
-          PoseLandmarkType.leftKnee,
-        ),
+        angleLeftHip,
         pose,
         size,
         canvas,
       );
       drawAngle(
         PoseLandmarkType.leftShoulder,
-        getAngle(
-          pose,
-          PoseLandmarkType.leftElbow,
-          PoseLandmarkType.leftShoulder,
-          PoseLandmarkType.leftHip,
-        ),
+        angleLeftShoulder,
         pose,
         size,
         canvas,
       );
+
+      if (angleKneeRight >= 170.0 && angleKneeRight <= 190.0) {
+        drawFeedbackCircle(
+            PoseLandmarkType.rightKnee, angleKneeRight, pose, size, canvas);
+      }
+
+      if (angleKneeLeft >= 170.0 && angleKneeLeft <= 190.0) {
+        drawFeedbackCircle(
+            PoseLandmarkType.leftKnee, angleKneeRight, pose, size, canvas);
+      }
     }
   }
 
@@ -261,6 +275,28 @@ class PosePainter extends CustomPainter {
       builder.build()..layout(const ParagraphConstraints(width: 100)),
       textOffset,
     );
+  }
+
+  drawFeedbackCircle(
+    PoseLandmarkType poseLandmarkType,
+    double angle,
+    Pose pose,
+    Size size,
+    Canvas canvas,
+  ) {
+    final correctPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10.0
+      ..color = CustomColors.Primary_500;
+
+    final joint = pose.landmarks[poseLandmarkType]!;
+
+    var offset = Offset(
+      translateX(joint.x, size, imageSize, rotation, cameraLensDirection),
+      translateY(joint.y, size, imageSize, rotation, cameraLensDirection),
+    );
+
+    canvas.drawCircle(offset, 20, correctPaint);
   }
 
   double getAngle(

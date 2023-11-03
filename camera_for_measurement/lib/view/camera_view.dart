@@ -1,14 +1,18 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:camera_for_measurement/common/const/custom_text_styles.dart';
 import 'package:camera_for_measurement/common/const/custom_units.dart';
+import 'package:camera_for_measurement/provider/picture_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
-class CameraView extends StatefulWidget {
+class CameraView extends ConsumerStatefulWidget {
   static String get routeName => 'camera';
 
   const CameraView(
@@ -27,12 +31,13 @@ class CameraView extends StatefulWidget {
   final CameraLensDirection initialCameraLensDirection;
 
   @override
-  State<CameraView> createState() => _CameraViewState();
+  ConsumerState<CameraView> createState() => _CameraViewState();
 }
 
-class _CameraViewState extends State<CameraView> {
+class _CameraViewState extends ConsumerState<CameraView> {
   static List<CameraDescription> _cameras = [];
   CameraController? _controller;
+
   int _cameraIndex = -1;
   double _currentZoomLevel = 1.0;
   double _minAvailableZoom = 1.0;
@@ -43,8 +48,10 @@ class _CameraViewState extends State<CameraView> {
   bool _changingCameraLens = false;
   bool _liveStreamOn = true;
 
-  XFile? imageFile;
-  XFile? videoFile;
+  // XFile? _pictureFile;
+  Uint8List? _imageFile;
+
+  GlobalKey previewContainerKey = GlobalKey();
 
   @override
   void initState() {
@@ -106,57 +113,54 @@ class _CameraViewState extends State<CameraView> {
                   ),
                 )
               : Center(
-                  child: CameraPreview(
-                    _controller!,
-                    child: _liveStreamOn ? widget.customPaint : null,
+                  child: RepaintBoundary(
+                    key: previewContainerKey,
+                    child: CameraPreview(
+                      _controller!,
+                      child: _liveStreamOn ? widget.customPaint : null,
+                    ),
                   ),
                 ),
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  color: Colors.black,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: CustomUnits.buttonMargin,
-                      vertical: CustomUnits.buttonMargin / 2,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        _backButton(),
-                        Expanded(
-                          child: _exposureControl(),
-                        ),
-                      ],
-                    ),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: CustomUnits.buttonMargin,
+                    vertical: CustomUnits.buttonMargin / 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _backButton(),
+                      Expanded(
+                        child: _exposureControl(),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
                   child: Container(),
                 ),
-                Container(
-                  color: Colors.black,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: CustomUnits.buttonMargin,
-                      vertical: CustomUnits.buttonMargin / 2,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _zoomControl(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: _detectionSwitch()),
-                            Expanded(child: _cameraButton()),
-                            Expanded(child: _switchLiveCameraToggle()),
-                          ],
-                        ),
-                      ],
-                    ),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: CustomUnits.buttonMargin,
+                    vertical: CustomUnits.buttonMargin / 2,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _zoomControl(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(child: _detectionSwitch()),
+                          Expanded(child: _cameraButton()),
+                          Expanded(child: _switchLiveCameraToggle()),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -285,9 +289,7 @@ class _CameraViewState extends State<CameraView> {
       width: 70.0,
       child: FloatingActionButton(
         elevation: 0,
-        onPressed: () {
-          _controller?.takePicture();
-        },
+        onPressed: _captureAndShowImage,
         backgroundColor: CustomColors.Primary_300,
         child: Icon(
           Icons.fiber_manual_record,
@@ -295,6 +297,45 @@ class _CameraViewState extends State<CameraView> {
           size: 60,
         ),
       ),
+    );
+  }
+
+  Future<void> _captureAndShowImage() async {
+    RenderRepaintBoundary boundary = previewContainerKey.currentContext
+        ?.findRenderObject() as RenderRepaintBoundary;
+
+    final picture = await _controller?.takePicture(); // 사진 찍기 (소리 재생)
+
+    setState(() {
+      ref.read(pictureProvider.notifier).state = picture;
+    });
+
+    final image = await boundary.toImage(pixelRatio: 1.0);
+    final byteData = await image.toByteData(format: ImageByteFormat.png);
+    final buffer = byteData!.buffer.asUint8List();
+
+    setState(() {
+      _imageFile = buffer;
+    });
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: _imageFile != null
+              ? Image.memory(_imageFile!)
+              : const Text('Something went wrong...'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -354,7 +395,6 @@ class _CameraViewState extends State<CameraView> {
           widget.onCameraLensDirectionChanged!(camera.lensDirection);
         }
       });
-      // _startPoseDetector(camera);
       setState(() {});
     });
   }
@@ -387,7 +427,7 @@ class _CameraViewState extends State<CameraView> {
     }
 
     setState(() => _changingCameraLens = true);
-    _cameraIndex =  (_cameraIndex + 1) % _cameras.length;
+    _cameraIndex = (_cameraIndex + 1) % _cameras.length;
 
     await _stopLiveFeed();
     await _startLiveFeed();
@@ -463,29 +503,5 @@ class _CameraViewState extends State<CameraView> {
         bytesPerRow: plane.bytesPerRow, // used only in iOS
       ),
     );
-  }
-
-  void onTakePictureButtonPressed() {
-    _controller?.takePicture().then((XFile? file) async {
-      // final String filePath = (await getApplicationDocumentsDirectory()).path;
-
-      if (mounted) {
-        setState(() {
-          imageFile = file;
-        });
-        if (file != null) {
-          // ToDo
-          // final fileName = file.path;
-          // await file.saveTo('$filePath/$fileName');
-
-          // if (!mounted) return;
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   SnackBar(
-          //     content: Text('Picture saved to ${file.path}'),
-          //   ),
-          // );
-        }
-      }
-    });
   }
 }
