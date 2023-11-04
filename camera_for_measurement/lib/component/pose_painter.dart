@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'coordinates_translator.dart';
 
@@ -227,14 +228,14 @@ class PosePainter extends CustomPainter {
         canvas,
       );
 
-      if (angleKneeRight >= 170.0 && angleKneeRight <= 190.0) {
-        drawFeedbackCircle(
-            PoseLandmarkType.rightKnee, angleKneeRight, pose, size, canvas);
+      if (angleLeftShoulder >= 80.0 && angleLeftShoulder <= 100.0) {
+        drawFeedbackCircle(PoseLandmarkType.leftShoulder, angleLeftShoulder,
+            pose, size, canvas);
       }
 
-      if (angleKneeLeft >= 170.0 && angleKneeLeft <= 190.0) {
-        drawFeedbackCircle(
-            PoseLandmarkType.leftKnee, angleKneeRight, pose, size, canvas);
+      if (angleRightShoulder >= 80.0 && angleRightShoulder <= 100.0) {
+        drawFeedbackCircle(PoseLandmarkType.rightShoulder, angleRightShoulder,
+            pose, size, canvas);
       }
     }
   }

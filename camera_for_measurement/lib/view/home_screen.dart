@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:camera_for_measurement/common/const/custom_text_styles.dart';
 import 'package:camera_for_measurement/common/const/custom_units.dart';
-import 'package:camera_for_measurement/provider/picture_provider.dart';
-import 'package:camera_for_measurement/provider/pose_info_provider.dart';
 import 'package:camera_for_measurement/view/analysis_view.dart';
 import 'package:camera_for_measurement/view/pose_detector_view.dart';
 import 'package:flutter/material.dart';

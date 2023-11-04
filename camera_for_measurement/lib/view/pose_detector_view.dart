@@ -47,15 +47,20 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     _isBusy = true;
     List<Pose> poses = await _poseDetector.processImage(inputImage);
 
-    // print(poses);
-    // List<String> posesToString = [];
-    // poses.first.landmarks.forEach((key, value) {
-    //   var info =
-    //       'Type: ${value.type} | x: ${value.x} | y: ${value.y} | likelihood: ${value.likelihood} | createdAt: ${DateTime.now()}';
-    //   posesToString.add(info);
-    // });
-    // ref.read(poseInfoProvider.notifier).state.addAll(posesToString);
-    // print(ref.read(poseInfoProvider.notifier).state);
+    print(poses);
+    List<String> posesToString = [];
+    if (poses.isNotEmpty) {
+      poses.first.landmarks.forEach((key, value) {
+        var info =
+            'Type: ${value.type} | x: ${value.x} | y: ${value.y} | likelihood: ${value.likelihood} | createdAt: ${DateTime.now()}';
+        posesToString.add(info);
+      });
+      ref.read(poseInfoProvider.notifier).state = [
+        ...ref.read(poseInfoProvider),
+        ...posesToString
+      ];
+      print(ref.read(poseInfoProvider.notifier).state);
+    }
 
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
