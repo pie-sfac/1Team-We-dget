@@ -106,13 +106,13 @@ class _PaintPageState extends State<PaintPage> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FloatingActionButton.small(
-            onPressed: () {
-              painter?.eraseModeChange();
-            },
-            child: Icon(Icons.auto_fix_normal_sharp),
-          ),
-          SizedBox(height: 12),
+          // FloatingActionButton.small(
+          //   onPressed: () {
+          //     painter?.eraseModeChange();
+          //   },
+          //   child: Icon(Icons.auto_fix_normal_sharp),
+          // ),
+          // SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () {
               painter?.eraseModeChange();

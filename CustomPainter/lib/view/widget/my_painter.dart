@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:wedget/model/info.dart';
 
@@ -14,7 +16,9 @@ class MyPainter extends CustomPainter {
   bool eraseMode = false;
   bool straightMode = false;
 
-  final List<Info> undoLines = [];
+  List<Offset> circleLine = [];
+
+  List<Info> undoLines = [];
 
   MyPainter();
 
@@ -46,7 +50,12 @@ class MyPainter extends CustomPainter {
         }
 
         canvas.drawPath(path, paint);
+        // if (straightMode) {
+        //   canvas.drawCircle(circleLine.first, 50, paint);
+        // }
       }
+      // if (straightMode) {
+      // } else {}
     }
 
     //lines 리스트 모두
@@ -91,12 +100,14 @@ class MyPainter extends CustomPainter {
       // info에 그려진 마지막 라인을 삭제
       final lastLine = lines.removeLast();
       print(lastLine);
+      print('hi');
       // 삭제한 라인을 undoLines에 추가하여 나중에 되돌릴 수 있도록 저장
       undoLines.add(lastLine);
     }
   }
 
   void redo() {
+    print("undoLines: ${undoLines}");
     if (undoLines.isNotEmpty) {
       // undoLines에 있는 마지막 라인을 복원
       final restoredLine = undoLines.removeLast();
@@ -122,14 +133,37 @@ class MyPainter extends CustomPainter {
 
   void panEnd() {
     var color = colors;
+    var eraseGap = 10;
     BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
     if (eraseMode) {
       eraseLine.add(panLine);
+      print(eraseLine);
+      for (var eraseOffsets in eraseLine) {
+        for (var lineInfo in lines) {
+          for (int i = 0; i < lineInfo.offset.length; i++) {
+            final offset = lineInfo.offset[i];
+            if (eraseOffsets.any((eraseOffset) {
+              return sqrt(pow((eraseOffset.dx - offset.dx), 2) +
+                      pow((eraseOffset.dy - offset.dy), 2)) <
+                  eraseGap;
+            })) {
+              // 선 지우기
+              Info lastLine = (lineInfo);
+
+              // 지운 선을 undoLines에 추가
+              undoLines = [Info.clone(lastLine)];
+
+              // 지우지 말고 그대로 두려면 아래 라인을 주석 처리하거나 삭제
+              lineInfo.offset.clear();
+            }
+          }
+        }
+      }
     } else if (straightMode) {
-      var straightLine = [panLine.first, panLine.last];
-      lines.add(Info(straightLine, sizes, color, blendModes));
+      circleLine = [panLine.first, panLine.last];
+      lines.add(Info(circleLine, sizes, color, blendModes, eraseMode));
     } else {
-      lines.add(Info(panLine, sizes, color, blendModes));
+      lines.add(Info(panLine, sizes, color, blendModes, eraseMode));
     }
     panLine = [];
     print(lines);
