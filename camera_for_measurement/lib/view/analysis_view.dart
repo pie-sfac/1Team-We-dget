@@ -20,14 +20,6 @@ class _AnalysisViewState extends ConsumerState<AnalysisView> {
         title: const Text('자세 측정 카메라'),
         centerTitle: true,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {});
-            },
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Padding(
