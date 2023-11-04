@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/component/pose_painter.dart';
-import 'package:camera_for_measurement/provider/picture_provider.dart';
 import 'package:camera_for_measurement/provider/pose_info_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -41,13 +40,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     );
   }
 
-  Future<void> _processImage(InputImage inputImage) async {
-    if (!_canProcess) return;
-    if (_isBusy) return;
-    _isBusy = true;
-    List<Pose> poses = await _poseDetector.processImage(inputImage);
-
-    print(poses);
+  void _extractPoseData(List<Pose> poses) {
     List<String> posesToString = [];
     if (poses.isNotEmpty) {
       poses.first.landmarks.forEach((key, value) {
@@ -59,8 +52,16 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
         ...ref.read(poseInfoProvider),
         ...posesToString
       ];
-      print(ref.read(poseInfoProvider.notifier).state);
     }
+  }
+
+  Future<void> _processImage(InputImage inputImage) async {
+    if (!_canProcess) return;
+    if (_isBusy) return;
+    _isBusy = true;
+    List<Pose> poses = await _poseDetector.processImage(inputImage);
+
+    _extractPoseData(poses);
 
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
