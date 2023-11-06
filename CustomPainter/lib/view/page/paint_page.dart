@@ -21,6 +21,9 @@ class _PaintPageState extends State<PaintPage> {
 
   XFile? selectedImage;
 
+  double positionX1 = 0;
+  double positionY1 = 0;
+
   @override
   void initState() {
     super.initState();
@@ -78,26 +81,91 @@ class _PaintPageState extends State<PaintPage> {
                     },
                   ),
                 ),
-                Slider(
-                  value: sliderValue,
-                  min: 0.7,
-                  max: 10.0,
-                  divisions: 5,
-                  onChanged: (newValue) {
-                    setState(() {
-                      sliderValue = newValue;
-                      painter?.sizeChange(newValue);
-                    });
-                  },
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Slider(
+                      value: sliderValue,
+                      min: 0.7,
+                      max: 10.0,
+                      divisions: 5,
+                      onChanged: (newValue) {
+                        setState(() {
+                          sliderValue = newValue;
+                          painter?.sizeChange(newValue);
+                        });
+                      },
+                    ),
+                    RawMaterialButton(
+                      onPressed: () {
+                        setState(() {
+                          if (painter!.mode != 'penMode')
+                            painter?.penModeChange();
+                        });
+                      },
+                      elevation: 2.0,
+                      fillColor: Colors.blue,
+                      child: Icon(
+                        Icons.brush,
+                        size: 12.0,
+                        color: Colors.white,
+                      ),
+                      padding: EdgeInsets.all(15.0),
+                      shape: CircleBorder(),
+                    ),
+                    RawMaterialButton(
+                      onPressed: () {
+                        setState(() {
+                          if (painter!.mode != 'eraseMode')
+                            painter?.eraseModeChange();
+                        });
+                      },
+                      elevation: 2.0,
+                      fillColor: Colors.blue,
+                      child: Icon(
+                        Icons.auto_fix_high,
+                        size: 12.0,
+                        color: Colors.white,
+                      ),
+                      padding: EdgeInsets.all(15.0),
+                      shape: CircleBorder(),
+                    ),
+                  ],
                 )
               ],
             ),
+            Positioned(
+              left: positionX1,
+              top: positionY1,
+              child: Container(
+                width: 100,
+                height: 100,
+                child: Stack(
+                  children: [
+                    TextField(
+                        // showCursor: false,
+                        ),
+                    GestureDetector(
+                      onScaleUpdate: (s) {
+                        setState(
+                          () {
+                            positionX1 += s.focalPointDelta.dx;
+                            positionY1 += s.focalPointDelta.dy;
+                            print(positionX1);
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                color: Colors.black12,
+              ),
+            ),
             Container(
               //여기 바로 업데이트가 안 됨
-              child: GestureDetector(
-                child: CustomPaint(
-                  painter: painter,
-                ),
+              child: CustomPaint(
+                key: ValueKey(painter?.panLine.hashCode),
+                painter: painter,
               ),
             ),
           ],
@@ -106,31 +174,21 @@ class _PaintPageState extends State<PaintPage> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // FloatingActionButton.small(
-          //   onPressed: () {
-          //     painter?.eraseModeChange();
-          //   },
-          //   child: Icon(Icons.auto_fix_normal_sharp),
-          // ),
-          // SizedBox(height: 12),
-          FloatingActionButton.small(
-            onPressed: () {
-              painter?.eraseModeChange();
-            },
-            child: Icon(Icons.auto_fix_high),
-          ),
-          SizedBox(height: 12),
-          FloatingActionButton.small(
-            onPressed: () {},
-            child: Icon(Icons.crop_square),
-          ),
           SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () {
-              if (painter!.eraseMode) {
-                painter?.eraseModeChange();
+              if (painter!.mode != 'circleMode') {
+                painter?.circleModeChange();
               }
-              painter?.straightModeChange();
+            },
+            child: Icon(Icons.circle_outlined),
+          ),
+          SizedBox(height: 12),
+          FloatingActionButton.small(
+            onPressed: () {
+              if (painter!.mode != 'straightMode') {
+                painter?.straightModeChange();
+              }
             },
             child: Icon(Icons.horizontal_rule),
           ),
@@ -139,10 +197,8 @@ class _PaintPageState extends State<PaintPage> {
             onPressed: () {
               setState(() {
                 painter?.colorChangeRed();
-                if (painter!.eraseMode) {
+                if (painter!.mode == 'eraseMode') {
                   painter?.eraseModeChange();
-                } else if (painter!.straightMode) {
-                  painter?.straightModeChange();
                 }
               });
             },
@@ -152,15 +208,22 @@ class _PaintPageState extends State<PaintPage> {
           FloatingActionButton.small(
             onPressed: () {
               setState(() {
-                painter?.colorChangeRed();
-                if (painter!.eraseMode) {
+                painter?.colorChangeBlack();
+                if (painter!.mode == 'eraseMode') {
                   painter?.eraseModeChange();
-                } else if (painter!.straightMode) {
-                  painter?.straightModeChange();
                 }
               });
             },
             backgroundColor: Colors.black,
+          ),
+          SizedBox(height: 12),
+          FloatingActionButton.small(
+            onPressed: () {
+              setState(() {
+                painter?.opacityModeChange();
+              });
+            },
+            child: Icon(Icons.blur_on),
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
@@ -194,17 +257,26 @@ class _PaintPageState extends State<PaintPage> {
           SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () async {
-              var image =
-                  await imagePicker.pickImage(source: ImageSource.gallery);
-              if (image != null) {
-                print('이미지 선택 완료');
-                selectedImage = image;
+              setState(() {
+                painter?.imgDeleteModeChange();
+              });
+              if (painter!.imgMode) {
+                selectedImage = null;
                 setState(() {});
+                Icon(Icons.delete);
               } else {
-                print('이미지 선택 실패');
+                var image =
+                    await imagePicker.pickImage(source: ImageSource.gallery);
+                if (image != null) {
+                  print('이미지 선택 완료');
+                  selectedImage = image;
+                  setState(() {});
+                } else {
+                  print('이미지 선택 실패');
+                }
               }
             },
-            child: Icon(Icons.image),
+            child: Icon(painter!.imgMode ? Icons.image : Icons.delete),
           ),
         ],
       ),

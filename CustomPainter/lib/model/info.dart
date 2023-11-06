@@ -28,17 +28,17 @@ class Info {
   List<Offset> offset;
   double size;
   Color color;
-  BlendMode blendMode;
-  bool eraseMode;
+  String mode;
+  String modeOption;
 
-  Info(this.offset, this.size, this.color, this.blendMode, this.eraseMode);
+  Info(this.offset, this.size, this.color, this.mode, this.modeOption);
 
   Info.clone(Info other)
       : offset = List.from(other.offset),
         size = other.size,
         color = other.color,
-        blendMode = other.blendMode,
-        eraseMode = other.eraseMode;
+        mode = other.mode,
+        modeOption = other.modeOption;
 
   // void add(List<Offset> line) {
   //   lines.add([...line]);
@@ -46,6 +46,6 @@ class Info {
 
   @override
   String toString() {
-    return 'Info(offset: $offset, size: $size, color: $color, eraseMode: $eraseMode)';
+    return 'Info(offset: $offset, size: $size, color: $color, mode: $mode, modeOption: $modeOption)';
   }
 }

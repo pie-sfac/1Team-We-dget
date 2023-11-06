@@ -13,8 +13,14 @@ class MyPainter extends CustomPainter {
   Color colors = Colors.black;
   BlendMode blendModes = BlendMode.srcOver;
 
+  bool penMode = true;
+  bool imgMode = true;
   bool eraseMode = false;
   bool straightMode = false;
+  bool circleMode = false;
+  bool opacityMode = false;
+  String mode = 'penMode';
+  String modeOption = '';
 
   List<Offset> circleLine = [];
 
@@ -34,25 +40,36 @@ class MyPainter extends CustomPainter {
         ..style = PaintingStyle.stroke;
       // ..blendMode = info.blendMode;
 
-      // if (eraseMode) {
-      //   paint.blendMode = BlendMode.clear; // 지우개 모드일 때 이전 그림을 투명하게 처리
-      // } else {
-      //   paint.blendMode = BlendMode.srcOver; // 일반 그리기 모드
-      // }
-
       List<Offset> offsetList = info.offset;
 
       if (offsetList.isNotEmpty) {
         var path = Path();
-        path.moveTo(offsetList.first.dx, offsetList.first.dy);
-        for (int i = 1; i < offsetList.length; i++) {
-          path.lineTo(offsetList[i].dx, offsetList[i].dy);
-        }
 
-        canvas.drawPath(path, paint);
-        // if (straightMode) {
-        //   canvas.drawCircle(circleLine.first, 50, paint);
-        // }
+        if (info.mode == 'circleMode') {
+          if (offsetList.length >= 2) {
+            // 선의 두 끝점의 중간 지점 계산
+            Offset start = offsetList.first;
+            Offset end = offsetList.last;
+            Offset center =
+                Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+            double radius =
+                sqrt(pow(end.dx - center.dx, 2) + pow(end.dy - center.dy, 2));
+
+            // 중간 지점에 원을 그립니다.
+            canvas.drawCircle(center, radius, paint);
+          }
+        } else if (info.mode == 'straightMode') {
+          var p1 = info.offset.first;
+          var p2 = info.offset.last;
+          canvas.drawLine(p1, p2, paint);
+        } else {
+          path.moveTo(offsetList.first.dx, offsetList.first.dy);
+          for (int i = 1; i < offsetList.length; i++) {
+            path.lineTo(offsetList[i].dx, offsetList[i].dy);
+          }
+
+          canvas.drawPath(path, paint);
+        }
       }
       // if (straightMode) {
       // } else {}
@@ -84,15 +101,46 @@ class MyPainter extends CustomPainter {
     return true;
   }
 
+  void penModeChange() {
+    penMode = true;
+    mode = 'penMode';
+    print(penMode);
+    print(mode);
+  }
+
   void eraseModeChange() {
     eraseMode = !eraseMode;
+    mode = eraseMode ? 'eraseMode' : 'penMode';
     print(eraseMode);
+    print(mode);
     eraseMode ? blendModes = BlendMode.srcOut : blendModes = BlendMode.srcOver;
   }
 
   void straightModeChange() {
-    straightMode = !straightMode;
+    straightMode = true;
+    mode = 'straightMode';
     print(straightMode);
+    print(mode);
+  }
+
+  void circleModeChange() {
+    circleMode = true;
+    mode = 'circleMode';
+    print(circleMode);
+    print(mode);
+  }
+
+  void opacityModeChange() {
+    opacityMode = !opacityMode;
+    modeOption = opacityMode ? 'opacityMode' : '';
+    colors = opacityMode ? colors.withOpacity(0.5) : colors.withOpacity(1);
+    print(opacityMode);
+    print(modeOption);
+    print(mode);
+  }
+
+  void imgDeleteModeChange() {
+    imgMode = !imgMode;
   }
 
   void undo() {
@@ -100,7 +148,6 @@ class MyPainter extends CustomPainter {
       // info에 그려진 마지막 라인을 삭제
       final lastLine = lines.removeLast();
       print(lastLine);
-      print('hi');
       // 삭제한 라인을 undoLines에 추가하여 나중에 되돌릴 수 있도록 저장
       undoLines.add(lastLine);
     }
@@ -121,21 +168,22 @@ class MyPainter extends CustomPainter {
   }
 
   void panStart(Offset offset) {
-    panLine.add(offset);
+    panLine = [...panLine, offset];
+    lines = [...lines, Info(panLine, sizes, colors, mode, modeOption)];
     print(panLine); // Info 객체의 내용을 출력
     undoLines.clear();
   }
 
   void panUpdate(Offset offset) {
-    panLine.add(offset);
+    panLine = [...panLine, offset];
+    lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     print(panLine);
   }
 
   void panEnd() {
-    var color = colors;
     var eraseGap = 10;
     BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
-    if (eraseMode) {
+    if (mode == 'eraseMode') {
       eraseLine.add(panLine);
       print(eraseLine);
       for (var eraseOffsets in eraseLine) {
@@ -153,17 +201,13 @@ class MyPainter extends CustomPainter {
               // 지운 선을 undoLines에 추가
               undoLines = [Info.clone(lastLine)];
 
-              // 지우지 말고 그대로 두려면 아래 라인을 주석 처리하거나 삭제
               lineInfo.offset.clear();
             }
           }
         }
       }
-    } else if (straightMode) {
-      circleLine = [panLine.first, panLine.last];
-      lines.add(Info(circleLine, sizes, color, blendModes, eraseMode));
     } else {
-      lines.add(Info(panLine, sizes, color, blendModes, eraseMode));
+      lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     }
     panLine = [];
     print(lines);
@@ -175,12 +219,21 @@ class MyPainter extends CustomPainter {
   // void straight(Canvas canvas, Size size) {}
 
   void colorChangeRed() {
-    colors = Colors.red;
+    if (modeOption == 'opacityMode') {
+      colors = Colors.red.withOpacity(0.5);
+    } else {
+      colors = Colors.red;
+    }
     print(colors);
   }
 
   void colorChangeBlack() {
-    colors = Colors.black;
+    if (modeOption == 'opacityMode') {
+      colors = Colors.black.withOpacity(0.5);
+    } else {
+      colors = Colors.black;
+    }
+
     print(colors);
   }
 
