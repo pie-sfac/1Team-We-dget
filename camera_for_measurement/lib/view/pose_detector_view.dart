@@ -76,7 +76,81 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     );
 
     return Scaffold(
-      body: _liveFeedBody(),
+      body: (_cameras.isEmpty ||
+              _controller == null ||
+              _controller?.value.isInitialized == false)
+          ? Container()
+          : Container(
+              color: Colors.black,
+              child: Stack(
+                children: [
+                  _changingCameraLens
+                      ? Center(
+                          child: Text(
+                            '카메라 렌즈를 바꾸는 중입니다 ...',
+                            style: CustomTextStyles.Body1.copyWith(
+                              color: CustomColors.Gray_50,
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: RepaintBoundary(
+                            key: previewContainerKey,
+                            child: CameraPreview(
+                              _controller!,
+                              child: _liveStreamOn ? _customPaint : null,
+                            ),
+                          ),
+                        ),
+                  SafeArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: CustomUnits.buttonMargin,
+                            vertical: CustomUnits.buttonMargin / 2,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              _backButton(),
+                              Expanded(
+                                child: _exposureControl(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: CustomUnits.buttonMargin,
+                            vertical: CustomUnits.buttonMargin / 2,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _zoomControl(),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(child: _detectionSwitch()),
+                                  Expanded(child: _cameraButton()),
+                                  Expanded(child: _switchLiveCameraToggle()),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -129,82 +203,6 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
       });
       setState(() {});
     });
-  }
-
-  Widget _liveFeedBody() {
-    if (_cameras.isEmpty) return Container();
-    if (_controller == null) return Container();
-    if (_controller?.value.isInitialized == false) return Container();
-    return Container(
-      color: Colors.black,
-      child: Stack(
-        children: [
-          _changingCameraLens
-              ? Center(
-                  child: Text(
-                    '카메라 렌즈를 바꾸는 중입니다 ...',
-                    style: CustomTextStyles.Body1.copyWith(
-                      color: CustomColors.Gray_50,
-                    ),
-                  ),
-                )
-              : Center(
-                  child: RepaintBoundary(
-                    key: previewContainerKey,
-                    child: CameraPreview(
-                      _controller!,
-                      child: _liveStreamOn ? _customPaint : null,
-                    ),
-                  ),
-                ),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: CustomUnits.buttonMargin,
-                    vertical: CustomUnits.buttonMargin / 2,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      _backButton(),
-                      Expanded(
-                        child: _exposureControl(),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: CustomUnits.buttonMargin,
-                    vertical: CustomUnits.buttonMargin / 2,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _zoomControl(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(child: _detectionSwitch()),
-                          Expanded(child: _cameraButton()),
-                          Expanded(child: _switchLiveCameraToggle()),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _switchLiveCameraToggle() {
