@@ -76,35 +76,11 @@ class PosePainter extends CustomPainter {
         final PoseLandmark joint2 = pose.landmarks[type2]!;
         canvas.drawLine(
             Offset(
-                translateX(
-                  joint1.x,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                ),
-                translateY(
-                  joint1.y,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                )),
+                translateX(joint1.x, size, imageSize, rotation, cameraLensDirection),
+                translateY(joint1.y, size, imageSize, rotation, cameraLensDirection)),
             Offset(
-                translateX(
-                  joint2.x,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                ),
-                translateY(
-                  joint2.y,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                )),
+                translateX(joint2.x, size, imageSize, rotation, cameraLensDirection),
+                translateY(joint2.y, size, imageSize, rotation, cameraLensDirection)),
             paintType);
       }
 
@@ -163,86 +139,20 @@ class PosePainter extends CustomPainter {
       paintLine(PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, horizontalPaint);
 
       // Calculate angle
-      var angleKneeRight = getAngle(
-        pose,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-        PoseLandmarkType.rightAnkle,
-      );
-      var angleRightHip = getAngle(
-        pose,
-        PoseLandmarkType.rightShoulder,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-      );
-      var angleRightShoulder = getAngle(
-        pose,
-        PoseLandmarkType.rightElbow,
-        PoseLandmarkType.rightShoulder,
-        PoseLandmarkType.rightHip,
-      );
-      var angleKneeLeft = getAngle(
-        pose,
-        PoseLandmarkType.leftHip,
-        PoseLandmarkType.leftKnee,
-        PoseLandmarkType.leftAnkle,
-      );
-      var angleLeftHip = getAngle(
-        pose,
-        PoseLandmarkType.leftShoulder,
-        PoseLandmarkType.leftHip,
-        PoseLandmarkType.leftKnee,
-      );
-      var angleLeftShoulder = getAngle(
-        pose,
-        PoseLandmarkType.leftElbow,
-        PoseLandmarkType.leftShoulder,
-        PoseLandmarkType.leftHip,
-      );
+      var angleKneeRight = getAngle(pose, PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle);
+      var angleRightHip = getAngle(pose, PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee);
+      var angleRightShoulder = getAngle(pose, PoseLandmarkType.rightElbow, PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip);
+      var angleKneeLeft = getAngle(pose, PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee, PoseLandmarkType.leftAnkle);
+      var angleLeftHip = getAngle(pose, PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee);
+      var angleLeftShoulder = getAngle(pose, PoseLandmarkType.leftElbow, PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip);
 
       // Draw angle at important points
-      drawAngle(
-        PoseLandmarkType.rightKnee,
-        angleKneeRight,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.rightHip,
-        angleRightHip,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.rightShoulder,
-        angleRightShoulder,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftKnee,
-        angleKneeLeft,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftHip,
-        angleLeftHip,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftShoulder,
-        angleLeftShoulder,
-        pose,
-        size,
-        canvas,
-      );
+      drawAngle(PoseLandmarkType.rightKnee, angleKneeRight, pose, size, canvas);
+      drawAngle(PoseLandmarkType.rightHip, angleRightHip, pose, size, canvas);
+      drawAngle(PoseLandmarkType.rightShoulder, angleRightShoulder, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftKnee, angleKneeLeft, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftHip, angleLeftHip, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftShoulder, angleLeftShoulder, pose, size, canvas);
 
       if (angleLeftShoulder >= 80.0 && angleLeftShoulder <= 100.0) {
         drawFeedbackCircle(PoseLandmarkType.leftShoulder, angleLeftShoulder,

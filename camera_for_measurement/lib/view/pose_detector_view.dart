@@ -154,166 +154,11 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     );
   }
 
-  void _initialize() async {
-    if (_cameras.isEmpty) {
-      _cameras = await availableCameras();
-    }
-    for (var i = 0; i < _cameras.length; i++) {
-      if (_cameras[i].lensDirection == _cameraLensDirection) {
-        _cameraIndex = i;
-        break;
-      }
-    }
-    if (_cameraIndex != -1) {
-      _startLiveFeed();
-    }
-  }
-
-  Future _startLiveFeed() async {
-    final camera = _cameras[_cameraIndex];
-    _controller = CameraController(
-      camera,
-      // Set to ResolutionPreset.high. Do NOT set it to ResolutionPreset.max because for some phones does NOT work.
-      ResolutionPreset.high,
-      enableAudio: false,
-      imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.nv21
-          : ImageFormatGroup.bgra8888,
-    );
-    _controller?.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      _controller?.getMinZoomLevel().then((value) {
-        _currentZoomLevel = value;
-        _minAvailableZoom = value;
-      });
-      _controller?.getMaxZoomLevel().then((value) {
-        _maxAvailableZoom = value;
-      });
-      _currentExposureOffset = 0.0;
-      _controller?.getMinExposureOffset().then((value) {
-        _minAvailableExposureOffset = value;
-      });
-      _controller?.getMaxExposureOffset().then((value) {
-        _maxAvailableExposureOffset = value;
-      });
-      _controller?.startImageStream(_processCameraImage).then((value) {
-        _cameraLensDirection = camera.lensDirection;
-      });
-      setState(() {});
-    });
-  }
-
-  Widget _switchLiveCameraToggle() {
-    return SizedBox(
-      height: 50.0,
-      width: 50.0,
-      child: FloatingActionButton(
-        elevation: 0,
-        onPressed: () => _switchLiveCamera(_cameras[_cameraIndex]),
-        backgroundColor: CustomColors.Primary_300,
-        child: Icon(
-          Platform.isIOS
-              ? Icons.flip_camera_ios_outlined
-              : Icons.flip_camera_android_outlined,
-          color: CustomColors.Gray_50,
-          size: 25,
-        ),
-      ),
-    );
-  }
-
-  Future _switchLiveCamera(camera) async {
-    if (!_liveStreamOn) {
-      _liveStreamOn = true;
-      _startPoseDetector(camera);
-    }
-
-    setState(() => _changingCameraLens = true);
-    _cameraIndex = (_cameraIndex + 1) % _cameras.length;
-
-    await _stopLiveFeed();
-    await _startLiveFeed();
-    setState(() => _changingCameraLens = false);
-  }
-
-  Future _stopLiveFeed() async {
-    await _controller?.stopImageStream();
-    await _controller?.dispose();
-    _controller = null;
-  }
-
-  Widget _cameraButton() {
-    return SizedBox(
-      height: 70.0,
-      width: 70.0,
-      child: FloatingActionButton(
-        elevation: 0,
-        onPressed: _captureAndShowImage,
-        backgroundColor: CustomColors.Primary_300,
-        child: Icon(
-          Icons.fiber_manual_record,
-          color: CustomColors.Gray_50,
-          size: 60,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _captureAndShowImage() async {
-    RenderRepaintBoundary boundary = previewContainerKey.currentContext
-        ?.findRenderObject() as RenderRepaintBoundary;
-
-    final picture = await _controller?.takePicture();
-
-    setState(() {
-      ref.read(pictureProvider.notifier).state = picture;
-    });
-
-    final image = await boundary.toImage(pixelRatio: 1.0);
-    final byteData = await image.toByteData(format: ImageByteFormat.png);
-    final buffer = byteData!.buffer.asUint8List();
-
-    setState(() => _imageFile = buffer);
-
-    // _extractPoseData(poses);
-
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          content: _imageFile != null
-              ? Image.memory(_imageFile!)
-              : const Text('Something went wrong...'),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AnalysisView(),
-                  ),
-                );
-              },
-              child: Text('사진보러가기'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _backButton() => SizedBox(
         height: 50.0,
         width: 50.0,
         child: FloatingActionButton(
+          heroTag: Object(),
           elevation: 0,
           onPressed: () => Navigator.of(context).pop(),
           backgroundColor: CustomColors.Primary_300,
@@ -422,6 +267,162 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     );
   }
 
+  Widget _cameraButton() {
+    return SizedBox(
+      height: 70.0,
+      width: 70.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+        elevation: 0,
+        onPressed: _captureAndShowImage,
+        backgroundColor: CustomColors.Primary_300,
+        child: Icon(
+          Icons.fiber_manual_record,
+          color: CustomColors.Gray_50,
+          size: 60,
+        ),
+      ),
+    );
+  }
+
+  Widget _switchLiveCameraToggle() {
+    return SizedBox(
+      height: 50.0,
+      width: 50.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+        elevation: 0,
+        onPressed: () => _switchLiveCamera(_cameras[_cameraIndex]),
+        backgroundColor: CustomColors.Primary_300,
+        child: Icon(
+          Platform.isIOS
+              ? Icons.flip_camera_ios_outlined
+              : Icons.flip_camera_android_outlined,
+          color: CustomColors.Gray_50,
+          size: 25,
+        ),
+      ),
+    );
+  }
+
+  void _initialize() async {
+    if (_cameras.isEmpty) {
+      _cameras = await availableCameras();
+    }
+    for (var i = 0; i < _cameras.length; i++) {
+      if (_cameras[i].lensDirection == _cameraLensDirection) {
+        _cameraIndex = i;
+        break;
+      }
+    }
+    if (_cameraIndex != -1) {
+      _startLiveFeed();
+    }
+  }
+
+  Future _startLiveFeed() async {
+    final camera = _cameras[_cameraIndex];
+    _controller = CameraController(
+      camera,
+      // Set to ResolutionPreset.high. Do NOT set it to ResolutionPreset.max because for some phones does NOT work.
+      ResolutionPreset.high,
+      enableAudio: false,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
+    );
+    _controller?.initialize().then((_) {
+      if (!mounted) {
+        return;
+      }
+      _controller?.getMinZoomLevel().then((value) {
+        _currentZoomLevel = value;
+        _minAvailableZoom = value;
+      });
+      _controller?.getMaxZoomLevel().then((value) {
+        _maxAvailableZoom = value;
+      });
+      _currentExposureOffset = 0.0;
+      _controller?.getMinExposureOffset().then((value) {
+        _minAvailableExposureOffset = value;
+      });
+      _controller?.getMaxExposureOffset().then((value) {
+        _maxAvailableExposureOffset = value;
+      });
+      _controller?.startImageStream(_processCameraImage).then((value) {
+        _cameraLensDirection = camera.lensDirection;
+      });
+      setState(() {});
+    });
+  }
+
+  Future _switchLiveCamera(camera) async {
+    if (!_liveStreamOn) {
+      _liveStreamOn = true;
+      _startPoseDetector(camera);
+    }
+
+    setState(() => _changingCameraLens = true);
+    _cameraIndex = (_cameraIndex + 1) % _cameras.length;
+
+    await _stopLiveFeed();
+    await _startLiveFeed();
+    setState(() => _changingCameraLens = false);
+  }
+
+  Future _stopLiveFeed() async {
+    await _controller?.stopImageStream();
+    await _controller?.dispose();
+    _controller = null;
+  }
+
+  Future<void> _captureAndShowImage() async {
+    RenderRepaintBoundary boundary = previewContainerKey.currentContext
+        ?.findRenderObject() as RenderRepaintBoundary;
+
+    final picture = await _controller?.takePicture();
+
+    setState(() {
+      ref.read(pictureProvider.notifier).state = picture;
+    });
+
+    final image = await boundary.toImage(pixelRatio: 1.0);
+    final byteData = await image.toByteData(format: ImageByteFormat.png);
+    final buffer = byteData!.buffer.asUint8List();
+
+    setState(() => _imageFile = buffer);
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: _imageFile != null
+              ? Image.memory(_imageFile!)
+              : const Text('Something went wrong...'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AnalysisView(),
+                  ),
+                );
+              },
+              child: const Text('사진보러가기'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future _stopPoseDetector() async {
     await _controller?.stopImageStream();
   }
@@ -504,28 +505,43 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  void _extractPoseData(List<Pose> poses) {
-    List<String> posesToString = [];
-    if (poses.isNotEmpty) {
-      poses.first.landmarks.forEach((key, value) {
-        var info =
-            'Type: ${value.type} | x: ${value.x} | y: ${value.y} | likelihood: ${value.likelihood} | createdAt: ${DateTime.now()}';
-        posesToString.add(info);
-      });
-      ref.read(poseInfoProvider.notifier).state = [
-        ...ref.read(poseInfoProvider),
-        ...posesToString
-      ];
-    }
-  }
-
-  Future<void> _processImage(InputImage inputImage) async {
+  Future<void> _processImage(
+    InputImage inputImage,
+  ) async {
     if (!_canProcess) return;
     if (_isBusy) return;
     _isBusy = true;
     List<Pose> poses = await _poseDetector.processImage(inputImage);
 
-    _extractPoseData(poses);
+    // Todo: 이 부분 이렇게 저장할 필요 없음 poses 로 한번에 저장하기
+    List<Map<String, dynamic>> posesToString = [];
+    if (poses.isNotEmpty) {
+      poses.first.landmarks.forEach((key, value) {
+        var info = {
+          'createdAt': '${DateTime.now()}',
+          'Pose': poses.first,
+          'inputImage': inputImage,
+          'cameraLensDirection':_cameraLensDirection,
+          //
+          'Type': value.type.name,
+          'x': '${value.x}',
+          'y': '${value.y}',
+          'z': '${value.z}',
+          'likelihood': '${value.likelihood}',
+          'inputImage.size':inputImage.metadata!.size,
+          'inputImage.rotation':inputImage.metadata!.rotation,
+        };
+
+        posesToString.add(info);
+      });
+    }
+
+    if (posesToString.isNotEmpty) {
+      ref.read(poseInfoProvider.notifier).state = [
+        ...ref.read(poseInfoProvider),
+        ...posesToString,
+      ];
+    }
 
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
