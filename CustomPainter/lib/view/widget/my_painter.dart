@@ -19,12 +19,17 @@ class MyPainter extends CustomPainter {
   bool straightMode = false;
   bool circleMode = false;
   bool opacityMode = false;
+  bool touchMode = false;
+  bool textMode = false;
   String mode = 'penMode';
   String modeOption = '';
 
   List<Offset> circleLine = [];
 
   List<Info> undoLines = [];
+  List<Info> infoList = [];
+
+  late Info lastLine;
 
   MyPainter();
 
@@ -38,7 +43,6 @@ class MyPainter extends CustomPainter {
         ..strokeWidth = info.size
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
-      // ..blendMode = info.blendMode;
 
       List<Offset> offsetList = info.offset;
 
@@ -62,7 +66,7 @@ class MyPainter extends CustomPainter {
           var p1 = info.offset.first;
           var p2 = info.offset.last;
           canvas.drawLine(p1, p2, paint);
-        } else {
+        } else if (info.mode != 'textMode') {
           path.moveTo(offsetList.first.dx, offsetList.first.dy);
           for (int i = 1; i < offsetList.length; i++) {
             path.lineTo(offsetList[i].dx, offsetList[i].dy);
@@ -71,6 +75,7 @@ class MyPainter extends CustomPainter {
           canvas.drawPath(path, paint);
         }
       }
+
       // if (straightMode) {
       // } else {}
     }
@@ -139,6 +144,13 @@ class MyPainter extends CustomPainter {
     print(mode);
   }
 
+  void textModeChange() {
+    textMode = true;
+    mode = 'textMode';
+    print(textMode);
+    print(mode);
+  }
+
   void imgDeleteModeChange() {
     imgMode = !imgMode;
   }
@@ -146,8 +158,8 @@ class MyPainter extends CustomPainter {
   void undo() {
     if (lines.isNotEmpty) {
       // info에 그려진 마지막 라인을 삭제
-      final lastLine = lines.removeLast();
-      print(lastLine);
+      lastLine = lines.removeLast();
+      print('lastLine: $lastLine');
       // 삭제한 라인을 undoLines에 추가하여 나중에 되돌릴 수 있도록 저장
       undoLines.add(lastLine);
     }
@@ -165,6 +177,7 @@ class MyPainter extends CustomPainter {
 
   void reset() {
     lines.clear();
+    undoLines.clear();
   }
 
   void panStart(Offset offset) {
@@ -210,7 +223,7 @@ class MyPainter extends CustomPainter {
       lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     }
     panLine = [];
-    print(lines);
+    print('lines: ${lines}');
     print(panLine);
   }
 
@@ -224,6 +237,7 @@ class MyPainter extends CustomPainter {
     } else {
       colors = Colors.red;
     }
+    mode = 'penMode';
     print(colors);
   }
 
@@ -233,7 +247,7 @@ class MyPainter extends CustomPainter {
     } else {
       colors = Colors.black;
     }
-
+    mode = 'penMode';
     print(colors);
   }
 
