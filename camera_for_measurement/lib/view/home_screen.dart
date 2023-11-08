@@ -39,7 +39,7 @@ class _HomeState extends ConsumerState<Home> {
                   );
                 },
                 child: Text(
-                  'Pose Detection',
+                  'Pose Detection (사진 찍기)',
                   style: CustomTextStyles.Body1.copyWith(
                     color: CustomColors.Gray_50,
                   ),
@@ -47,15 +47,14 @@ class _HomeState extends ConsumerState<Home> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AnalysisView(),
-                    ),
-                  );
+                  Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const AnalysisView(),
+                      ),
+                      (route) => false);
                 },
                 child: Text(
-                  'Pose Analysis',
+                  'Pose Analysis (사진 보기)',
                   style: CustomTextStyles.Body1.copyWith(
                     color: CustomColors.Gray_50,
                   ),

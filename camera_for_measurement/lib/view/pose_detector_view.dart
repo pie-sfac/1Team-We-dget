@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/component/pose_painter.dart';
 import 'package:camera_for_measurement/provider/pose_info_provider.dart';
+import 'package:camera_for_measurement/view/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -41,12 +42,11 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
   double _minAvailableZoom = 1.0;
   double _maxAvailableZoom = 1.0;
 
-  Uint8List? _imageFile;
-
   final PoseDetector _poseDetector =
       PoseDetector(options: PoseDetectorOptions());
   bool _canProcess = true;
   bool _isBusy = false;
+  bool _isTakingPicture = false;
   CustomPaint? _customPaint;
   var _cameraLensDirection = CameraLensDirection.back;
 
@@ -55,6 +55,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     super.initState();
 
     _initialize();
+    _isTakingPicture = false;
   }
 
   @override
@@ -160,7 +161,11 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
         child: FloatingActionButton(
           heroTag: Object(),
           elevation: 0,
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => Home(),
+              ),
+              (route) => false),
           backgroundColor: CustomColors.Primary_300,
           child: Icon(
             Icons.chevron_left,
@@ -332,9 +337,8 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
           : ImageFormatGroup.bgra8888,
     );
     _controller?.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
       _controller?.getMinZoomLevel().then((value) {
         _currentZoomLevel = value;
         _minAvailableZoom = value;
@@ -376,50 +380,23 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     _controller = null;
   }
 
+  // 사진을 찍으면 AnalysisView 로 이동
   Future<void> _captureAndShowImage() async {
-    RenderRepaintBoundary boundary = previewContainerKey.currentContext
-        ?.findRenderObject() as RenderRepaintBoundary;
+    _isTakingPicture = true;
+
+    ref.read(poseInfoProvider.notifier).state.clear();
 
     final picture = await _controller?.takePicture();
+    ref.read(pictureProvider.notifier).state = picture;
 
-    setState(() {
-      ref.read(pictureProvider.notifier).state = picture;
-    });
-
-    final image = await boundary.toImage(pixelRatio: 1.0);
-    final byteData = await image.toByteData(format: ImageByteFormat.png);
-    final buffer = byteData!.buffer.asUint8List();
-
-    setState(() => _imageFile = buffer);
+    // print(ref.read(poseInfoProvider));
 
     if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          content: _imageFile != null
-              ? Image.memory(_imageFile!)
-              : const Text('Something went wrong...'),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AnalysisView(),
-                  ),
-                );
-              },
-              child: const Text('사진보러가기'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const AnalysisView(),
+      ),
+      (route) => false,
     );
   }
 
@@ -438,6 +415,8 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     if (inputImage == null) return;
 
     _processImage(inputImage);
+
+    ref.read(sizeProvider.notifier).state = inputImage.metadata!.size;
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {
@@ -505,6 +484,28 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     DeviceOrientation.landscapeRight: 270,
   };
 
+  // data extraction
+  void _extractData(poses, inputImage, posesToString) {
+    if (_isTakingPicture && poses.isNotEmpty) {
+      var info = {
+        'createdAt': '${DateTime.now()}',
+        'Pose': poses.first,
+        'inputImage': inputImage,
+        'cameraLensDirection': _cameraLensDirection,
+      };
+
+      posesToString.add(info);
+
+      if (posesToString.isNotEmpty) {
+        ref.read(poseInfoProvider.notifier).state = [
+          ...posesToString,
+        ];
+      }
+
+      _isTakingPicture = false;
+    }
+  }
+
   Future<void> _processImage(
     InputImage inputImage,
   ) async {
@@ -513,38 +514,12 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     _isBusy = true;
     List<Pose> poses = await _poseDetector.processImage(inputImage);
 
-    // Todo: 이 부분 이렇게 저장할 필요 없음 poses 로 한번에 저장하기
     List<Map<String, dynamic>> posesToString = [];
-    if (poses.isNotEmpty) {
-      poses.first.landmarks.forEach((key, value) {
-        var info = {
-          'createdAt': '${DateTime.now()}',
-          'Pose': poses.first,
-          'inputImage': inputImage,
-          'cameraLensDirection':_cameraLensDirection,
-          //
-          'Type': value.type.name,
-          'x': '${value.x}',
-          'y': '${value.y}',
-          'z': '${value.z}',
-          'likelihood': '${value.likelihood}',
-          'inputImage.size':inputImage.metadata!.size,
-          'inputImage.rotation':inputImage.metadata!.rotation,
-        };
-
-        posesToString.add(info);
-      });
-    }
-
-    if (posesToString.isNotEmpty) {
-      ref.read(poseInfoProvider.notifier).state = [
-        ...ref.read(poseInfoProvider),
-        ...posesToString,
-      ];
-    }
 
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
+      _extractData(poses, inputImage, posesToString);
+
       final painter = PosePainter(
         poses,
         inputImage.metadata!.size,

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:camera_for_measurement/component/pose_painter.dart';
+import 'package:camera_for_measurement/view/home_screen.dart';
+import 'package:camera_for_measurement/view/pose_detector_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -18,26 +20,56 @@ class _AnalysisViewState extends ConsumerState<AnalysisView> {
   bool isDetectOn = true;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => Home(),
+                    ),
+                    (route) => false);
+              },
+              icon: const Icon(Icons.home_outlined),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => PoseDetectorView(),
+                    ),
+                    (route) => false);
+              },
+              icon: const Icon(Icons.camera_alt_outlined),
+            ),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: CustomUnits.margin,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: CustomUnits.margin),
           child: ListView(
             children: [
-              if (ref.watch(poseInfoProvider.notifier).state != [])
+              if (ref.watch(pictureProvider.notifier).state != null)
                 renderProcessedImage(),
-              if (ref.watch(poseInfoProvider.notifier).state != [])
+              if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
                 Switch(
-                  value: isDetectOn,
-                  onChanged: (val) {
-                    isDetectOn = !isDetectOn;
-                    setState(() {});
-                  }),
-              Text('${ref.watch(poseInfoProvider.notifier).state.last}'),
-              Text('${ref.watch(poseInfoProvider.notifier).state}'),
+                    value: isDetectOn,
+                    onChanged: (val) {
+                      isDetectOn = !isDetectOn;
+                      setState(() {});
+                    }),
+              if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
+                renderAnalyzedValue(),
             ],
           ),
         ),
@@ -45,38 +77,63 @@ class _AnalysisViewState extends ConsumerState<AnalysisView> {
     );
   }
 
+  Widget renderAnalyzedValue() {
+    final state = ref.watch(poseInfoProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('$state'),
+        const SizedBox(height: 16),
+        if (state.isNotEmpty)
+          Text(
+              '${((ref.watch(poseInfoProvider.notifier).state.last['Pose']) as Pose).landmarks.values.map(
+                    (e) =>
+                        '${e.type.name} x: ${e.x}, y: ${e.y}, z: ${e.z}, likelihood: ${e.likelihood}\n',
+                  )}'),
+      ],
+    );
+  }
+
   Widget renderProcessedImage() {
-    if (ref.watch(poseInfoProvider.notifier).state.isEmpty) return Container();
+    var picture = Image.file(
+      File(ref.watch(pictureProvider.notifier).state!.path),
+    );
 
-    var _paintData = ref.watch(poseInfoProvider.notifier).state.last;
+    CustomPaint _customPaint = CustomPaint();
 
-    Pose pose = _paintData['Pose'];
-    List<Pose> poses = [];
-    poses.add(pose);
+    if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty) {
+      var _paintData = ref.watch(poseInfoProvider.notifier).state.last;
 
-    InputImage inputImage = _paintData['inputImage'];
-    var imageSize = inputImage.metadata!.size;
-    var rotation = inputImage.metadata!.rotation;
+      Pose pose = _paintData['Pose'];
+      List<Pose> poses = [];
+      poses.add(pose);
 
-    var cameraLensDirection = _paintData['cameraLensDirection'];
+      InputImage inputImage = _paintData['inputImage'];
+      var imageSize = inputImage.metadata!.size;
+      var rotation = inputImage.metadata!.rotation;
 
-    var painter = PosePainter(poses, imageSize, rotation, cameraLensDirection);
+      var cameraLensDirection = _paintData['cameraLensDirection'];
 
-    CustomPaint _customPaint = CustomPaint(painter: painter);
+      var painter =
+          PosePainter(poses, imageSize, rotation, cameraLensDirection);
+
+      _customPaint = CustomPaint(painter: painter, size: imageSize);
+    }
+
+    setState(() {});
 
     return Center(
       child: Container(
-        // transform: Matrix4.fromList(
-        //     [0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]),
-        width: imageSize.width, // / 2,
-        height: imageSize.height, // / 2,
+        width: ref.watch(sizeProvider.notifier).state.width / 2,
+        height: ref.watch(sizeProvider.notifier).state.height / 2,
         color: Colors.red.withOpacity(0.3),
         child: Stack(
-          fit: StackFit.expand,
           children: [
-            if (ref.watch(pictureProvider.notifier).state != null)
-              Image.file(File(ref.watch(pictureProvider.notifier).state!.path)),
-            if (isDetectOn) Container(child: _customPaint),
+            picture,
+            if (isDetectOn &&
+                ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
+              _customPaint,
           ],
         ),
       ),
