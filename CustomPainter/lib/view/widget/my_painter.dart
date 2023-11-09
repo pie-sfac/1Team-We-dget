@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:wedget/model/info.dart';
 
@@ -11,10 +13,23 @@ class MyPainter extends CustomPainter {
   Color colors = Colors.black;
   BlendMode blendModes = BlendMode.srcOver;
 
+  bool penMode = true;
+  bool imgMode = true;
   bool eraseMode = false;
   bool straightMode = false;
+  bool circleMode = false;
+  bool opacityMode = false;
+  bool touchMode = false;
+  bool textMode = false;
+  String mode = 'penMode';
+  String modeOption = '';
 
-  final List<Info> undoLines = [];
+  List<Offset> circleLine = [];
+
+  List<Info> undoLines = [];
+  List<Info> infoList = [];
+
+  late Info lastLine;
 
   MyPainter();
 
@@ -28,25 +43,41 @@ class MyPainter extends CustomPainter {
         ..strokeWidth = info.size
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
-      // ..blendMode = info.blendMode;
-
-      // if (eraseMode) {
-      //   paint.blendMode = BlendMode.clear; // 지우개 모드일 때 이전 그림을 투명하게 처리
-      // } else {
-      //   paint.blendMode = BlendMode.srcOver; // 일반 그리기 모드
-      // }
 
       List<Offset> offsetList = info.offset;
 
       if (offsetList.isNotEmpty) {
         var path = Path();
-        path.moveTo(offsetList.first.dx, offsetList.first.dy);
-        for (int i = 1; i < offsetList.length; i++) {
-          path.lineTo(offsetList[i].dx, offsetList[i].dy);
-        }
 
-        canvas.drawPath(path, paint);
+        if (info.mode == 'circleMode') {
+          if (offsetList.length >= 2) {
+            // 선의 두 끝점의 중간 지점 계산
+            Offset start = offsetList.first;
+            Offset end = offsetList.last;
+            Offset center =
+                Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+            double radius =
+                sqrt(pow(end.dx - center.dx, 2) + pow(end.dy - center.dy, 2));
+
+            // 중간 지점에 원을 그립니다.
+            canvas.drawCircle(center, radius, paint);
+          }
+        } else if (info.mode == 'straightMode') {
+          var p1 = info.offset.first;
+          var p2 = info.offset.last;
+          canvas.drawLine(p1, p2, paint);
+        } else if (info.mode != 'textMode') {
+          path.moveTo(offsetList.first.dx, offsetList.first.dy);
+          for (int i = 1; i < offsetList.length; i++) {
+            path.lineTo(offsetList[i].dx, offsetList[i].dy);
+          }
+
+          canvas.drawPath(path, paint);
+        }
       }
+
+      // if (straightMode) {
+      // } else {}
     }
 
     //lines 리스트 모두
@@ -75,28 +106,67 @@ class MyPainter extends CustomPainter {
     return true;
   }
 
+  void penModeChange() {
+    penMode = true;
+    mode = 'penMode';
+    print(penMode);
+    print(mode);
+  }
+
   void eraseModeChange() {
     eraseMode = !eraseMode;
+    mode = eraseMode ? 'eraseMode' : 'penMode';
     print(eraseMode);
+    print(mode);
     eraseMode ? blendModes = BlendMode.srcOut : blendModes = BlendMode.srcOver;
   }
 
   void straightModeChange() {
-    straightMode = !straightMode;
+    straightMode = true;
+    mode = 'straightMode';
     print(straightMode);
+    print(mode);
+  }
+
+  void circleModeChange() {
+    circleMode = true;
+    mode = 'circleMode';
+    print(circleMode);
+    print(mode);
+  }
+
+  void opacityModeChange() {
+    opacityMode = !opacityMode;
+    modeOption = opacityMode ? 'opacityMode' : '';
+    colors = opacityMode ? colors.withOpacity(0.5) : colors.withOpacity(1);
+    print(opacityMode);
+    print(modeOption);
+    print(mode);
+  }
+
+  void textModeChange() {
+    textMode = true;
+    mode = 'textMode';
+    print(textMode);
+    print(mode);
+  }
+
+  void imgDeleteModeChange() {
+    imgMode = !imgMode;
   }
 
   void undo() {
     if (lines.isNotEmpty) {
       // info에 그려진 마지막 라인을 삭제
-      final lastLine = lines.removeLast();
-      print(lastLine);
+      lastLine = lines.removeLast();
+      print('lastLine: $lastLine');
       // 삭제한 라인을 undoLines에 추가하여 나중에 되돌릴 수 있도록 저장
       undoLines.add(lastLine);
     }
   }
 
   void redo() {
+    print("undoLines: ${undoLines}");
     if (undoLines.isNotEmpty) {
       // undoLines에 있는 마지막 라인을 복원
       final restoredLine = undoLines.removeLast();
@@ -107,32 +177,53 @@ class MyPainter extends CustomPainter {
 
   void reset() {
     lines.clear();
+    undoLines.clear();
   }
 
   void panStart(Offset offset) {
-    panLine.add(offset);
+    panLine = [...panLine, offset];
+    lines = [...lines, Info(panLine, sizes, colors, mode, modeOption)];
     print(panLine); // Info 객체의 내용을 출력
     undoLines.clear();
   }
 
   void panUpdate(Offset offset) {
-    panLine.add(offset);
+    panLine = [...panLine, offset];
+    lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     print(panLine);
   }
 
   void panEnd() {
-    var color = colors;
+    var eraseGap = 10;
     BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
-    if (eraseMode) {
+    if (mode == 'eraseMode') {
       eraseLine.add(panLine);
-    } else if (straightMode) {
-      var straightLine = [panLine.first, panLine.last];
-      lines.add(Info(straightLine, sizes, color, blendModes));
+      print(eraseLine);
+      for (var eraseOffsets in eraseLine) {
+        for (var lineInfo in lines) {
+          for (int i = 0; i < lineInfo.offset.length; i++) {
+            final offset = lineInfo.offset[i];
+            if (eraseOffsets.any((eraseOffset) {
+              return sqrt(pow((eraseOffset.dx - offset.dx), 2) +
+                      pow((eraseOffset.dy - offset.dy), 2)) <
+                  eraseGap;
+            })) {
+              // 선 지우기
+              Info lastLine = (lineInfo);
+
+              // 지운 선을 undoLines에 추가
+              undoLines = [Info.clone(lastLine)];
+
+              lineInfo.offset.clear();
+            }
+          }
+        }
+      }
     } else {
-      lines.add(Info(panLine, sizes, color, blendModes));
+      lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     }
     panLine = [];
-    print(lines);
+    print('lines: ${lines}');
     print(panLine);
   }
 
@@ -141,12 +232,22 @@ class MyPainter extends CustomPainter {
   // void straight(Canvas canvas, Size size) {}
 
   void colorChangeRed() {
-    colors = Colors.red;
+    if (modeOption == 'opacityMode') {
+      colors = Colors.red.withOpacity(0.5);
+    } else {
+      colors = Colors.red;
+    }
+    mode = 'penMode';
     print(colors);
   }
 
   void colorChangeBlack() {
-    colors = Colors.black;
+    if (modeOption == 'opacityMode') {
+      colors = Colors.black.withOpacity(0.5);
+    } else {
+      colors = Colors.black;
+    }
+    mode = 'penMode';
     print(colors);
   }
 
