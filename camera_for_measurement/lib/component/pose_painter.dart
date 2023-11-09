@@ -22,7 +22,7 @@ class PosePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final smallPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
       ..color = Colors.green;
@@ -42,7 +42,7 @@ class PosePainter extends CustomPainter {
       ..strokeWidth = 3.0
       ..color = Colors.redAccent;
 
-    final dottedPaint = Paint()
+    final horizontalPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0
       ..color = Colors.redAccent.withOpacity(0.5);
@@ -67,7 +67,7 @@ class PosePainter extends CustomPainter {
               ),
             ),
             1,
-            paint);
+            smallPaint);
       });
 
       void paintLine(
@@ -76,165 +76,92 @@ class PosePainter extends CustomPainter {
         final PoseLandmark joint2 = pose.landmarks[type2]!;
         canvas.drawLine(
             Offset(
-                translateX(
-                  joint1.x,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                ),
-                translateY(
-                  joint1.y,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                )),
+                translateX(joint1.x, size, imageSize, rotation, cameraLensDirection),
+                translateY(joint1.y, size, imageSize, rotation, cameraLensDirection)),
             Offset(
-                translateX(
-                  joint2.x,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                ),
-                translateY(
-                  joint2.y,
-                  size,
-                  imageSize,
-                  rotation,
-                  cameraLensDirection,
-                )),
+                translateX(joint2.x, size, imageSize, rotation, cameraLensDirection),
+                translateY(joint2.y, size, imageSize, rotation, cameraLensDirection)),
             paintType);
       }
 
-      //Draw arms
-      paintLine(
-          PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow, leftPaint);
-      paintLine(
-          PoseLandmarkType.leftElbow, PoseLandmarkType.leftWrist, leftPaint);
-      paintLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow,
-          rightPaint);
-      paintLine(
-          PoseLandmarkType.rightElbow, PoseLandmarkType.rightWrist, rightPaint);
+      // Draw face
+      paintLine(PoseLandmarkType.nose, PoseLandmarkType.rightEyeInner, smallPaint);
+      paintLine(PoseLandmarkType.rightEyeInner, PoseLandmarkType.rightEye, smallPaint);
+      paintLine(PoseLandmarkType.rightEye, PoseLandmarkType.rightEyeOuter, smallPaint);
+      paintLine(PoseLandmarkType.rightEyeOuter, PoseLandmarkType.rightEar, smallPaint);
 
-      //Draw Body
-      paintLine(
-          PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip, leftPaint);
-      paintLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip,
-          rightPaint);
+      paintLine(PoseLandmarkType.nose, PoseLandmarkType.leftEyeInner, smallPaint);
+      paintLine(PoseLandmarkType.leftEyeInner, PoseLandmarkType.leftEye, smallPaint);
+      paintLine(PoseLandmarkType.leftEye, PoseLandmarkType.leftEyeOuter, smallPaint);
+      paintLine(PoseLandmarkType.leftEyeOuter, PoseLandmarkType.leftEar, smallPaint);
 
-      //Draw legs
+      paintLine(PoseLandmarkType.leftEyeInner, PoseLandmarkType.rightEyeInner, horizontalPaint);
+      paintLine(PoseLandmarkType.leftEar, PoseLandmarkType.rightEar, horizontalPaint);
+
+      paintLine(PoseLandmarkType.leftMouth, PoseLandmarkType.rightMouth, connectPaint);
+
+      // Draw upper body
+      paintLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder, connectPaint);
+
+      paintLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow, leftPaint);
+      paintLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip, leftPaint);
+      paintLine(PoseLandmarkType.leftElbow, PoseLandmarkType.leftWrist, leftPaint);
+      paintLine(PoseLandmarkType.leftWrist, PoseLandmarkType.leftThumb, leftPaint);
+      paintLine(PoseLandmarkType.leftWrist, PoseLandmarkType.leftIndex, leftPaint);
+      paintLine(PoseLandmarkType.leftWrist, PoseLandmarkType.leftPinky, leftPaint);
+      paintLine(PoseLandmarkType.leftIndex, PoseLandmarkType.leftPinky, leftPaint);
+
+      paintLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow, rightPaint);
+      paintLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip, rightPaint);
+      paintLine(PoseLandmarkType.rightElbow, PoseLandmarkType.rightWrist, rightPaint);
+      paintLine(PoseLandmarkType.rightWrist, PoseLandmarkType.rightThumb, rightPaint);
+      paintLine(PoseLandmarkType.rightWrist, PoseLandmarkType.rightIndex, rightPaint);
+      paintLine(PoseLandmarkType.rightWrist, PoseLandmarkType.rightPinky, rightPaint);
+      paintLine(PoseLandmarkType.rightIndex, PoseLandmarkType.rightPinky, rightPaint);
+
+      // Draw lower body
+      paintLine(PoseLandmarkType.leftHip, PoseLandmarkType.rightHip, connectPaint);
+
       paintLine(PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee, leftPaint);
-      paintLine(
-          PoseLandmarkType.leftKnee, PoseLandmarkType.leftAnkle, leftPaint);
-      paintLine(
-          PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee, rightPaint);
-      paintLine(
-          PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle, rightPaint);
+      paintLine(PoseLandmarkType.leftKnee, PoseLandmarkType.leftAnkle, leftPaint);
+      paintLine(PoseLandmarkType.leftAnkle, PoseLandmarkType.leftHeel, leftPaint);
+      paintLine(PoseLandmarkType.leftHeel, PoseLandmarkType.leftFootIndex, leftPaint);
+      paintLine(PoseLandmarkType.leftFootIndex, PoseLandmarkType.leftAnkle, leftPaint);
 
-      //Connect left and right
-      paintLine(
-          PoseLandmarkType.leftHip, PoseLandmarkType.rightHip, connectPaint);
-      paintLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder,
-          connectPaint);
+      paintLine(PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee, rightPaint);
+      paintLine(PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle, rightPaint);
+      paintLine(PoseLandmarkType.rightAnkle, PoseLandmarkType.rightHeel, rightPaint);
+      paintLine(PoseLandmarkType.rightHeel, PoseLandmarkType.rightFootIndex, rightPaint);
+      paintLine(PoseLandmarkType.rightFootIndex, PoseLandmarkType.rightAnkle, rightPaint);
 
-      //Connect left and right - dotted
-      paintLine(
-          PoseLandmarkType.leftKnee, PoseLandmarkType.rightKnee, dottedPaint);
-      paintLine(
-          PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, dottedPaint);
+      // check horizontal balance
+      paintLine(PoseLandmarkType.leftKnee, PoseLandmarkType.rightKnee, horizontalPaint);
+      paintLine(PoseLandmarkType.leftElbow, PoseLandmarkType.rightElbow, horizontalPaint);
 
       // Calculate angle
-      var angleKneeRight = getAngle(
-        pose,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-        PoseLandmarkType.rightAnkle,
-      );
-      var angleRightHip = getAngle(
-        pose,
-        PoseLandmarkType.rightShoulder,
-        PoseLandmarkType.rightHip,
-        PoseLandmarkType.rightKnee,
-      );
-      var angleRightShoulder = getAngle(
-        pose,
-        PoseLandmarkType.rightElbow,
-        PoseLandmarkType.rightShoulder,
-        PoseLandmarkType.rightHip,
-      );
-      var angleKneeLeft = getAngle(
-        pose,
-        PoseLandmarkType.leftHip,
-        PoseLandmarkType.leftKnee,
-        PoseLandmarkType.leftAnkle,
-      );
-      var angleLeftHip = getAngle(
-        pose,
-        PoseLandmarkType.leftShoulder,
-        PoseLandmarkType.leftHip,
-        PoseLandmarkType.leftKnee,
-      );
-      var angleLeftShoulder = getAngle(
-        pose,
-        PoseLandmarkType.leftElbow,
-        PoseLandmarkType.leftShoulder,
-        PoseLandmarkType.leftHip,
-      );
+      var angleKneeRight = getAngle(pose, PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle);
+      var angleRightHip = getAngle(pose, PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee);
+      var angleRightShoulder = getAngle(pose, PoseLandmarkType.rightElbow, PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip);
+      var angleKneeLeft = getAngle(pose, PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee, PoseLandmarkType.leftAnkle);
+      var angleLeftHip = getAngle(pose, PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee);
+      var angleLeftShoulder = getAngle(pose, PoseLandmarkType.leftElbow, PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip);
 
       // Draw angle at important points
-      drawAngle(
-        PoseLandmarkType.rightKnee,
-        angleKneeRight,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.rightHip,
-        angleRightHip,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.rightShoulder,
-        angleRightShoulder,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftKnee,
-        angleKneeLeft,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftHip,
-        angleLeftHip,
-        pose,
-        size,
-        canvas,
-      );
-      drawAngle(
-        PoseLandmarkType.leftShoulder,
-        angleLeftShoulder,
-        pose,
-        size,
-        canvas,
-      );
+      drawAngle(PoseLandmarkType.rightKnee, angleKneeRight, pose, size, canvas);
+      drawAngle(PoseLandmarkType.rightHip, angleRightHip, pose, size, canvas);
+      drawAngle(PoseLandmarkType.rightShoulder, angleRightShoulder, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftKnee, angleKneeLeft, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftHip, angleLeftHip, pose, size, canvas);
+      drawAngle(PoseLandmarkType.leftShoulder, angleLeftShoulder, pose, size, canvas);
 
-      if (angleKneeRight >= 170.0 && angleKneeRight <= 190.0) {
-        drawFeedbackCircle(
-            PoseLandmarkType.rightKnee, angleKneeRight, pose, size, canvas);
+      if (angleLeftShoulder >= 80.0 && angleLeftShoulder <= 100.0) {
+        drawFeedbackCircle(PoseLandmarkType.leftShoulder, angleLeftShoulder,
+            pose, size, canvas);
       }
 
-      if (angleKneeLeft >= 170.0 && angleKneeLeft <= 190.0) {
-        drawFeedbackCircle(
-            PoseLandmarkType.leftKnee, angleKneeRight, pose, size, canvas);
+      if (angleRightShoulder >= 80.0 && angleRightShoulder <= 100.0) {
+        drawFeedbackCircle(PoseLandmarkType.rightShoulder, angleRightShoulder,
+            pose, size, canvas);
       }
     }
   }
