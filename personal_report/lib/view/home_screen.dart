@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:personal_report/body/ad_banner.dart';
 import 'package:personal_report/body/footer.dart';
@@ -8,11 +9,39 @@ import 'package:personal_report/body/recommended_materials.dart';
 import 'package:personal_report/body/share_to.dart';
 import 'package:personal_report/body/visualization_condition.dart';
 import 'package:personal_report/body/visualization_pain.dart';
+import 'package:personal_report/model/person.dart';
 
 import '../body/feedback.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Person? person;
+  // Dio dio = Dio();
+
+  // Future<Person?> fetchData() async {
+  //   var url = "https://flutterapi.tykan.me/personal-reports/";
+  //   var uuid = "60fcd982-4c5a-41d8-a524-3f8f75c2e2a5";
+  //   var res = await dio.get(url + uuid);
+
+  //   if(res.statusCode == 200) {
+  //     // Assuming you have a Person class that can parse the response
+  //     person = Person.fromMap(res.data);
+  //     return person;
+  //   }
+  //   return null;
+  // }
+
+  // @override
+  // void initState() async {
+  //   super.initState();
+  //   await fetchData();
+  // }
 
   @override
   Widget build(BuildContext context) {

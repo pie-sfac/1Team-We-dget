@@ -53,22 +53,22 @@ class Person {
   }
 }
 
-void main() async {
-  Dio dio = Dio();
-  var url = "https://flutterapi.tykan.me/personal-reports/";
-  var uuid = "60fcd982-4c5a-41d8-a524-3f8f75c2e2a5";
-  var res = await dio.get(url+uuid);
-  // print(res);
-  // print(res.data);
-  // print(res.data.runtimeType);
-  var person = Person.fromMap(res.data);
-  // print(person.member);
-  // print(person.uuid);
-  print(person.writer.name);
-  // print(res.data);
-  // print(res.data.runtimeType);  // List<dynamic>
-  // print(res.data.first.runtimeType);  // Map<String, dynamic>
-}
+// void main() async {
+//   Dio dio = Dio();
+//   var url = "https://flutterapi.tykan.me/personal-reports/";
+//   var uuid = "4d61d864-4885-4fff-a2f5-07f9b599885d";
+//   var res = await dio.get(url+uuid);
+//   // print(res);
+//   // print(res.data);
+//   // print(res.data.runtimeType);
+//   var person = Person.fromMap(res.data);
+//   // print(person.member);
+//   // print(person.uuid);
+//   print(person.writer.name);
+//   // print(res.data);
+//   // print(res.data.runtimeType);  // List<dynamic>
+//   // print(res.data.first.runtimeType);  // Map<String, dynamic>
+// }
 
   //   late Future data;
   //   Future getData() async {
