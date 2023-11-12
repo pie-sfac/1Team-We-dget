@@ -21,6 +21,8 @@ class _PaintPageState extends State<PaintPage> {
 
   XFile? selectedImage;
 
+  UniqueKey buttonKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
@@ -31,164 +33,127 @@ class _PaintPageState extends State<PaintPage> {
     var imagePicker = ImagePicker();
     return Scaffold(
       body: SafeArea(
-        child: Stack(
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: selectedImage != null
-                        ? BoxDecoration(
-                            image: DecorationImage(
-                              image: FileImage(File(selectedImage!.path)),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : null,
-                    child: GestureDetector(
-                      onPanStart: (s) {
-                        setState(() {
-                          if (painter?.mode == 'textMode')
-                            _addTextField(s.localPosition);
-                          painter?.panStart(s.localPosition);
-                          // _addTextField(s.localPosition);
-                        });
-                      },
-                      onPanUpdate: (s) {
-                        setState(() {
-                          painter?.panUpdate(s.localPosition);
-                        });
-                      },
-                      onPanEnd: (details) {
-                        setState(() {
-                          painter?.panEnd();
-                        });
-                        // }
-                      },
-                    ),
-                  ),
-                ),
-                Container(
-                  height: 80,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Expanded(
+              child: InteractiveViewer(
+                // boundaryMargin: const EdgeInsets.all(20.0),
+                minScale: 0.1,
+                maxScale: 3.0,
+                panEnabled: painter?.mode == 'touchMode' ? true : false,
+                child: Container(
+                  child: Stack(
                     children: [
-                      Slider(
-                        value: sliderValue,
-                        min: 0.7,
-                        max: 10.0,
-                        divisions: 5,
-                        onChanged: (newValue) {
-                          setState(() {
-                            sliderValue = newValue;
-                            painter?.sizeChange(newValue);
-                          });
-                        },
+                      Container(
+                        decoration: selectedImage != null
+                            ? BoxDecoration(
+                                image: DecorationImage(
+                                  image: FileImage(File(selectedImage!.path)),
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : null,
                       ),
-                      RawMaterialButton(
-                        onPressed: () {
-                          setState(() {
-                            if (painter!.mode != 'penMode')
-                              painter?.penModeChange();
-                          });
-                        },
-                        elevation: 2.0,
-                        fillColor: Colors.blue,
-                        child: Icon(
-                          Icons.brush,
-                          size: 12.0,
-                          color: Colors.white,
+                      painter?.mode != 'touchMode'
+                          ? GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onPanStart: (s) {
+                                setState(() {
+                                  if (painter?.mode == 'textMode')
+                                    _addTextField(s.localPosition);
+                                  painter?.panStart(s.localPosition);
+                                  // _addTextField(s.localPosition);
+                                });
+                              },
+                              onPanUpdate: (s) {
+                                setState(() {
+                                  painter?.panUpdate(s.localPosition);
+                                });
+                              },
+                              onPanEnd: (details) {
+                                setState(() {
+                                  painter?.panEnd();
+                                });
+                                // }
+                              },
+                            )
+                          : Container(),
+                      Container(
+                        child: CustomPaint(
+                          key: ValueKey(painter?.panLine.hashCode),
+                          painter: painter,
                         ),
-                        padding: EdgeInsets.all(15.0),
-                        shape: CircleBorder(),
                       ),
-                      RawMaterialButton(
-                        onPressed: () {
-                          setState(() {
-                            if (painter!.mode != 'eraseMode')
-                              painter?.eraseModeChange();
-                          });
-                        },
-                        elevation: 2.0,
-                        fillColor: Colors.blue,
-                        child: Icon(
-                          Icons.auto_fix_high,
-                          size: 12.0,
-                          color: Colors.white,
-                        ),
-                        padding: EdgeInsets.all(15.0),
-                        shape: CircleBorder(),
-                      ),
+                      if (painter!.lines.isNotEmpty)
+                        for (var info in painter!.lines)
+                          if (info.mode == 'textMode')
+                            Container(
+                              child: Stack(
+                                children: [
+                                  ...textFields, // Add your textFields here
+                                ],
+                              ),
+                            ),
                     ],
                   ),
-                )
-              ],
-            ),
-            // Positioned(
-            //   left: positionX1,
-            //   top: positionY1,
-            //   child: Container(
-            //     width: 100,
-            //     height: 100,
-            //     child: Stack(
-            //       children: [
-            //         TextField(
-            //             // showCursor: false,
-            //             ),
-            //         GestureDetector(
-            //           onScaleUpdate: (s) {
-            //             setState(
-            //               () {
-            //                 positionX1 += s.focalPointDelta.dx;
-            //                 positionY1 += s.focalPointDelta.dy;
-            //                 print(positionX1);
-            //               },
-            //             );
-            //           },
-            //         ),
-            //       ],
-            //     ),
-            //     color: Colors.black12,
-            //   ),
-            // ),
-            Container(
-              child: Stack(
-                children: [
-                  CustomPaint(
-                    key: ValueKey(painter?.panLine.hashCode),
-                    painter: painter,
-                  ),
-                  if (painter!.lines.isNotEmpty)
-                    for (var info in painter!.lines)
-                      if (info.mode == 'textMode')
-                        Container(
-                          child: GestureDetector(
-                            onPanStart: (details) {
-                              print('hi');
-                              print('textFields $textFields');
-                            },
-                            onPanUpdate: (details) {
-                              setState(() {
-                                print('hi');
-                              });
-                            },
-                            // onScaleUpdate: (s) {
-                            //   setState(() {
-                            //     print('textFields $textFields');
-                            //     print('hi');
-                            //   });
-                            // },
-                            child: Stack(
-                              children: [
-                                ...textFields, // Add your textFields here
-                              ],
-                            ),
-                          ),
-                        ),
-                ],
+                ),
               ),
             ),
+            Container(
+              height: 80,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Slider(
+                    value: sliderValue,
+                    min: 0.7,
+                    max: 10.0,
+                    divisions: 5,
+                    onChanged: (newValue) {
+                      setState(() {
+                        sliderValue = newValue;
+                        painter?.sizeChange(newValue);
+                      });
+                    },
+                  ),
+                  RawMaterialButton(
+                    onPressed: () {
+                      setState(() {
+                        if (painter!.mode != 'penMode')
+                          painter?.penModeChange();
+                      });
+                    },
+                    elevation: 2.0,
+                    fillColor: Colors.blue,
+                    child: Icon(
+                      Icons.brush,
+                      size: 12.0,
+                      color: Colors.white,
+                    ),
+                    padding: EdgeInsets.all(15.0),
+                    shape: CircleBorder(),
+                  ),
+                  RawMaterialButton(
+                    onPressed: () {
+                      setState(() {
+                        if (painter!.mode != 'eraseMode')
+                          painter?.eraseModeChange();
+                      });
+                    },
+                    elevation: 2.0,
+                    fillColor: Colors.blue,
+                    child: Icon(
+                      Icons.auto_fix_high,
+                      size: 12.0,
+                      color: Colors.white,
+                    ),
+                    padding: EdgeInsets.all(15.0),
+                    shape: CircleBorder(),
+                  ),
+                ],
+              ),
+            )
           ],
         ),
       ),
@@ -326,12 +291,20 @@ class _PaintPageState extends State<PaintPage> {
           FloatingActionButton.small(
             onPressed: () {
               setState(() {
-                if (painter!.mode != 'textMode') {
-                  painter?.textModeChange();
+                if (painter!.mode != 'touchMode') {
+                  painter?.touchModeChange();
                 }
               });
             },
             child: Icon(Icons.touch_app),
+          ),
+          SizedBox(height: 12),
+          FloatingActionButton.small(
+            key: buttonKey,
+            onPressed: () {
+              setState(() {});
+            },
+            child: Icon(Icons.delete),
           ),
         ],
       ),
@@ -343,9 +316,6 @@ class _PaintPageState extends State<PaintPage> {
   final UniqueKey key = UniqueKey();
 
   // List<TextField> MytextFields = [];
-
-  double positionX1 = 0;
-  double positionY1 = 0;
 
   void _addTextField(Offset offset) {
     final key = UniqueKey();
@@ -390,9 +360,9 @@ class _PaintPageState extends State<PaintPage> {
           setState(() {
             positionX1 = details.offset.dx;
             positionY1 = details.offset.dy;
-            print('New positionX1: $positionX1');
-            print('New positionY1: $positionY1');
-            print(textFields);
+            // print('New positionX1: $positionX1');
+            // print('New positionY1: $positionY1');
+            // print(textFields);
 
             final updatedTextField = Positioned(
               left: positionX1,
@@ -415,14 +385,11 @@ class _PaintPageState extends State<PaintPage> {
             }
 
             findKeyIndex();
-
-            print('UniqueKey(): ${UniqueKey()}');
-            print('textField.key: ${textField.key}');
-            print('key: ${key}');
-            print('keyList: ${keyList}');
-
+            // print('UniqueKey(): ${UniqueKey()}');
+            // print('textField.key: ${textField.key}');
+            // print('key: ${key}');
+            // print('keyList: ${keyList}');
             // print(textFields.indexOf(textField));
-
             if (index != -1) {
               textFields[index] = updatedTextField;
             } else {

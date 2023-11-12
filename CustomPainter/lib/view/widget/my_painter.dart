@@ -66,7 +66,7 @@ class MyPainter extends CustomPainter {
           var p1 = info.offset.first;
           var p2 = info.offset.last;
           canvas.drawLine(p1, p2, paint);
-        } else if (info.mode != 'textMode') {
+        } else if (info.mode != 'textMode' && info.mode != 'touchMode') {
           path.moveTo(offsetList.first.dx, offsetList.first.dy);
           for (int i = 1; i < offsetList.length; i++) {
             path.lineTo(offsetList[i].dx, offsetList[i].dy);
@@ -75,30 +75,7 @@ class MyPainter extends CustomPainter {
           canvas.drawPath(path, paint);
         }
       }
-
-      // if (straightMode) {
-      // } else {}
     }
-
-    //lines 리스트 모두
-    // final List<List<Offset>> lines = info.lines;
-    // for (final line in lines) {
-    //   if (line.isNotEmpty) {
-    //     path.moveTo(line.first.dx, line.first.dy);
-    //     for (int i = 1; i < line.length; i++) {
-    //       path.lineTo(line[i].dx, line[i].dy);
-    //     }
-    //   }
-    // }
-
-    // if (offsetList.isNotEmpty) {
-    //   var path = Path();
-    //   path.moveTo(offsetList.first.dx, offsetList.first.dy);
-    //   for (int i = 1; i < offsetList.length; i++) {
-    //     path.lineTo(offsetList[i].dx, offsetList[i].dy);
-    //   }
-
-    // canvas.drawPath(path, paint);
   }
 
   @override
@@ -148,6 +125,13 @@ class MyPainter extends CustomPainter {
     textMode = true;
     mode = 'textMode';
     print(textMode);
+    print(mode);
+  }
+
+  void touchModeChange() {
+    touchMode = true;
+    mode = 'touchMode';
+    print(touchMode);
     print(mode);
   }
 
@@ -226,10 +210,6 @@ class MyPainter extends CustomPainter {
     print('lines: ${lines}');
     print(panLine);
   }
-
-  void square(Canvas canvas, Size size) {}
-
-  // void straight(Canvas canvas, Size size) {}
 
   void colorChangeRed() {
     if (modeOption == 'opacityMode') {
