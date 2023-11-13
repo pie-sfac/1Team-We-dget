@@ -533,13 +533,11 @@ class _PoseDetectorViewState extends ConsumerState<OnCameraView> {
     _isBusy = true;
     List<Pose> poses = await _poseDetector.processImage(inputImage);
 
-    List<Map<String, dynamic>> posesToString = [];
-
     Future.delayed(const Duration(seconds: 2), () {
       _isTakingVideo = false;
     });
 
-    if (_isTakingVideo && poses.isNotEmpty) {
+    if (poses.isNotEmpty) {
       var info = {
         'createdAt': '${DateTime.now()}',
         'Pose': poses.first,
@@ -548,7 +546,6 @@ class _PoseDetectorViewState extends ConsumerState<OnCameraView> {
       };
 
       ref.read(poseInfoProvider.notifier).state.add(info);
-      // print('info is updated');
     }
 
     if (inputImage.metadata?.size != null &&
@@ -563,6 +560,7 @@ class _PoseDetectorViewState extends ConsumerState<OnCameraView> {
     } else {
       _customPaint = null;
     }
+
     _isBusy = false;
     if (mounted) {
       setState(() {});

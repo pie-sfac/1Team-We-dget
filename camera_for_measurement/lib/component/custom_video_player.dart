@@ -27,17 +27,8 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
     initializeController();
   }
 
-  @override
-  void didUpdateWidget(covariant CustomVideoPlayer oldWidget){
-    super.didUpdateWidget(oldWidget);
-
-    if(oldWidget.video.path != widget.video.path){
-      initializeController();
-    }
-  }
-
   initializeController() async {
-    // currentPosition = Duration();
+    currentPosition = const Duration();
 
     videoController = VideoPlayerController.file(
       File(widget.video.path),
@@ -59,7 +50,7 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     if (videoController == null) {
-      return CircularProgressIndicator();
+      return const CircularProgressIndicator();
     }
 
     return AspectRatio(
@@ -104,10 +95,10 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
   void onReversePressed() {
     final currentPosition = videoController!.value.position;
 
-    Duration position = Duration();
+    Duration position = const Duration();
 
     if (currentPosition.inSeconds > 3) {
-      position = currentPosition - Duration(seconds: 3);
+      position = currentPosition - const Duration(seconds: 3);
     }
 
     videoController!.seekTo(position);
@@ -119,9 +110,9 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
 
     Duration position = maxPosition;
 
-    if ((maxPosition - Duration(seconds: 3)).inSeconds >
+    if ((maxPosition - const Duration(seconds: 3)).inSeconds >
         currentPosition.inSeconds) {
-      position = currentPosition + Duration(seconds: 3);
+      position = currentPosition + const Duration(seconds: 3);
     }
 
     videoController!.seekTo(position);
@@ -194,27 +185,6 @@ class _Controls extends StatelessWidget {
   }
 }
 
-class _NewVideo extends StatelessWidget {
-  final VoidCallback onPressed;
-
-  const _NewVideo({required this.onPressed, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      right: 0,
-      child: IconButton(
-        onPressed: onPressed,
-        color: Colors.white,
-        iconSize: 30.0,
-        icon: Icon(
-          Icons.photo_camera_back,
-        ),
-      ),
-    );
-  }
-}
-
 class _SliderBottom extends StatelessWidget {
   final Duration currentPosition;
   final Duration maxPosition;
@@ -239,7 +209,7 @@ class _SliderBottom extends StatelessWidget {
           children: [
             Text(
               '${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}',
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
               ),
             ),
@@ -253,7 +223,7 @@ class _SliderBottom extends StatelessWidget {
             ),
             Text(
               '${maxPosition.inMinutes}:${(maxPosition.inSeconds % 60).toString().padLeft(2, '0')}',
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
               ),
             ),

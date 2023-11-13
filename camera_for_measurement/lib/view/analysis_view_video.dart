@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:camera_for_measurement/component/custom_video_player.dart';
 import 'package:camera_for_measurement/component/pose_painter.dart';
 import 'package:camera_for_measurement/view/home_screen.dart';
@@ -6,10 +5,10 @@ import 'package:camera_for_measurement/view/on_camera_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:video_player/video_player.dart';
 import '../common/const/custom_units.dart';
 import '../provider/picture_provider.dart';
 import '../provider/pose_info_provider.dart';
+import 'package:collection/collection.dart';
 
 class AnalysisViewVideo extends ConsumerStatefulWidget {
   const AnalysisViewVideo({super.key});
@@ -20,6 +19,7 @@ class AnalysisViewVideo extends ConsumerStatefulWidget {
 
 class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
   bool isDetectOn = true;
+  List<CustomPaint> _customPaints = [];
 
   @override
   Widget build(BuildContext context) {
@@ -65,13 +65,33 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
             children: [
               if (ref.watch(videoProvider.notifier).state != null)
                 renderProcessedVideo(),
-              // if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
-              //   Switch(
-              //       value: isDetectOn,
-              //       onChanged: (val) {
-              //         isDetectOn = !isDetectOn;
-              //         setState(() {});
-              //       }),
+              if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _customPaints
+                        .map(
+                          (e) => Center(
+                            child: Container(
+                              width: MediaQuery.of(context).size.width / 5,
+                              height: MediaQuery.of(context).size.height / 5,
+                              decoration: BoxDecoration(
+                                border: Border.all(),
+                              ),
+                              child: e,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
+                Switch(
+                    value: isDetectOn,
+                    onChanged: (val) {
+                      isDetectOn = !isDetectOn;
+                      setState(() {});
+                    }),
               if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
                 renderAnalyzedValue(),
             ],
@@ -90,57 +110,43 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
         Text('$state'),
         const SizedBox(height: 16),
         if (state.isNotEmpty)
-          Text('${(
-            (
-              ref
-                  .watch(poseInfoProvider.notifier)
-                  .state
-                  .map(
-                    (e) => (e['Pose'] as Pose)
-                        .landmarks
-                        .values
-                        .map((e) =>
-                            '${e.type.name} x: ${e.x}, y: ${e.y}, z: ${e.z}, likelihood: ${e.likelihood}\n')
-                        .toList(),
-                  )
-                  .toList(),
-            ),
-          )}'),
-        const SizedBox(height: 16),
-        if (state.isNotEmpty)
-          Text(
-              '${((ref.watch(poseInfoProvider.notifier).state.last['Pose']) as Pose).landmarks.values.map(
-                    (e) =>
-                        '${e.type.name} x: ${e.x}, y: ${e.y}, z: ${e.z}, likelihood: ${e.likelihood}\n',
-                  )}'),
-        if (state.isNotEmpty)
           Center(
             child: Text('${state.length} 번 감지'),
           ),
+        const SizedBox(height: 16),
+        if (state.isNotEmpty)
+          Text('${ref.watch(poseInfoProvider.notifier).state.mapIndexed(
+                (index, e) => (e['Pose'] as Pose).landmarks.values.map(
+                      (f) =>
+                          'index: $index\n${f.type.name} x: ${f.x}, y: ${f.y}, z: ${f.z}, likelihood: ${f.likelihood}\n',
+                    ),
+              ).toList()}'),
+        const SizedBox(height: 16),
       ],
     );
   }
 
   Widget renderProcessedVideo() {
-    CustomPaint _customPaint = const CustomPaint();
-
     if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty) {
-      var _paintData = ref.watch(poseInfoProvider.notifier).state.last;
+      // var _paintData = ref.watch(poseInfoProvider.notifier).state.first;
+      var _multiplePaintData = ref.watch(poseInfoProvider.notifier).state;
 
-      Pose pose = _paintData['Pose'];
-      List<Pose> poses = [];
-      poses.add(pose);
+      _customPaints = _multiplePaintData.map((_paintData) {
+        Pose pose = _paintData['Pose'];
+        List<Pose> poses = [];
+        poses.add(pose);
 
-      InputImage inputImage = _paintData['inputImage'];
-      var imageSize = inputImage.metadata!.size;
-      var rotation = inputImage.metadata!.rotation;
+        InputImage inputImage = _paintData['inputImage'];
+        var imageSize = inputImage.metadata!.size;
+        var rotation = inputImage.metadata!.rotation;
 
-      var cameraLensDirection = _paintData['cameraLensDirection'];
+        var cameraLensDirection = _paintData['cameraLensDirection'];
 
-      var painter =
-          PosePainter(poses, imageSize, rotation, cameraLensDirection);
+        var painter =
+            PosePainter(poses, imageSize, rotation, cameraLensDirection);
 
-      _customPaint = CustomPaint(painter: painter, size: imageSize);
+        return CustomPaint(painter: painter, size: imageSize);
+      }).toList();
     }
 
     setState(() {});
@@ -148,12 +154,10 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
     return SafeArea(
       child: Center(
         child: Container(
-          // width: ref.watch(sizeProvider.notifier).state.width / 2,
-          // height: ref.watch(sizeProvider.notifier).state.height / 2,
           width: MediaQuery.of(context).size.width / 2,
           height: MediaQuery.of(context).size.height / 2,
           color: Colors.red.withOpacity(0.3),
-          child: Column(
+          child: Stack(
             children: [
               ref.watch(videoProvider.notifier).state == null
                   ? const SizedBox.shrink()
@@ -166,9 +170,21 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
                         ),
                       ),
                     ),
-              // if (isDetectOn &&
-              //     ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
-              //   _customPaint,
+              if (isDetectOn &&
+                  ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
+                Stack(
+                  children: _customPaints
+                      .map(
+                        (e) => Center(
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width / 2,
+                            height: MediaQuery.of(context).size.height / 2,
+                            child: e,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
             ],
           ),
         ),
