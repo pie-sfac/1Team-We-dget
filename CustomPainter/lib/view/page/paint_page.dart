@@ -1,8 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:wedget/view/page/exported_data_page.dart';
 import 'package:wedget/view/widget/my_painter.dart';
+import 'package:image/image.dart' as img;
+
+import 'dart:ui' as ui;
 
 class PaintPage extends StatefulWidget {
   const PaintPage({super.key});
@@ -22,6 +28,128 @@ class _PaintPageState extends State<PaintPage> {
   XFile? selectedImage;
 
   UniqueKey buttonKey = UniqueKey();
+  var image;
+
+  Future<Size> getImageSize(XFile file) async {
+    final bytes = await File(file.path).readAsBytes();
+    final image = img.decodeImage(Uint8List.fromList(bytes));
+
+    if (image != null) {
+      return Size(image.width.toDouble(), image.height.toDouble());
+    } else {
+      throw Exception("Failed to decode image");
+    }
+  }
+
+  Future<ByteData?> getOriginalImageByteData(XFile? selectedImage) async {
+    try {
+      if (selectedImage != null) {
+        final ByteData data = await rootBundle.load(selectedImage.path);
+
+        return data;
+      } else {
+        print("Selected image is null");
+        return null;
+      }
+    } catch (e) {
+      print("Error loading original image: $e");
+      return null;
+    }
+  }
+
+  Future<ByteData?> getDrawingsByteData(MyPainter painter) async {
+    try {
+      final recorder = ui.PictureRecorder();
+
+      // Use the painter's size to determine the canvas size
+      final canvas = Canvas(
+        recorder,
+        Rect.fromPoints(
+          Offset(0, 0),
+          Offset(painter.size.width, painter.size.height),
+        ),
+      );
+
+      painter.paint(canvas, painter.size);
+
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(
+        painter.size.width.toInt(),
+        painter.size.height.toInt(),
+      );
+
+      final ByteData? byteData =
+          await img.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData != null) {
+        return byteData;
+      } else {
+        print("Error converting drawings to ByteData");
+        return null;
+      }
+    } catch (e) {
+      print("Error converting drawings to ByteData: $e");
+      return null;
+    }
+  }
+
+  Future<void> exportDrawings(BuildContext context) async {
+    var originalImageByteData = await getOriginalImageByteData(selectedImage!);
+    var imageSize = await getImageSize(selectedImage!);
+    var drawingsByteData = await getDrawingsByteData(painter!);
+
+    if (originalImageByteData != null && drawingsByteData != null) {
+      // 여기서 모달창을 띄우고 export 하는 로직 추가
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Export Confirmation'),
+          content: Text('Do you want to export the drawings?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 닫기
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ExportedDataPage(
+                      originalImageByteData: originalImageByteData,
+                      drawingsByteData: drawingsByteData,
+                    ),
+                  ),
+                ); // 닫기
+              },
+              child: Text('Export'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // 오류 처리
+      print('Error exporting drawings');
+    }
+  }
+
+  Future<void> performExport() async {
+    // Export 작업 수행
+    var originalImageByteData = await getOriginalImageByteData(selectedImage!);
+    var imageSize = await getImageSize(selectedImage!);
+    var drawingsByteData = await getDrawingsByteData(painter!);
+
+    if (originalImageByteData != null) {
+      print(originalImageByteData);
+    }
+
+    if (drawingsByteData != null) {
+      print(drawingsByteData);
+    }
+  }
 
   @override
   void initState() {
@@ -43,18 +171,36 @@ class _PaintPageState extends State<PaintPage> {
                 maxScale: 3.0,
                 panEnabled: painter?.mode == 'touchMode' ? true : false,
                 child: Container(
+                  decoration: BoxDecoration(),
                   child: Stack(
                     children: [
                       Container(
-                        decoration: selectedImage != null
-                            ? BoxDecoration(
-                                image: DecorationImage(
+                        width: MediaQuery.of(context).size.width,
+                        height: MediaQuery.of(context).size.height,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          image: selectedImage != null
+                              ? DecorationImage(
                                   image: FileImage(File(selectedImage!.path)),
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : null,
+                                )
+                              : null,
+                        ),
+                        child: CustomPaint(
+                          key: ValueKey(painter?.panLine.hashCode),
+                          painter: painter ??
+                              MyPainter(), // null일 때 MyPainter 인스턴스를 사용하도록 수정
+                        ),
                       ),
+                      if (painter!.lines.isNotEmpty)
+                        for (var info in painter!.lines)
+                          if (info.mode == 'textMode')
+                            Container(
+                              child: Stack(
+                                children: [
+                                  ...textFields, // Add your textFields here
+                                ],
+                              ),
+                            ),
                       painter?.mode != 'touchMode'
                           ? GestureDetector(
                               behavior: HitTestBehavior.translucent,
@@ -79,22 +225,6 @@ class _PaintPageState extends State<PaintPage> {
                               },
                             )
                           : Container(),
-                      Container(
-                        child: CustomPaint(
-                          key: ValueKey(painter?.panLine.hashCode),
-                          painter: painter,
-                        ),
-                      ),
-                      if (painter!.lines.isNotEmpty)
-                        for (var info in painter!.lines)
-                          if (info.mode == 'textMode')
-                            Container(
-                              child: Stack(
-                                children: [
-                                  ...textFields, // Add your textFields here
-                                ],
-                              ),
-                            ),
                     ],
                   ),
                 ),
@@ -273,7 +403,7 @@ class _PaintPageState extends State<PaintPage> {
                 setState(() {});
                 Icon(Icons.delete);
               } else {
-                var image =
+                image =
                     await imagePicker.pickImage(source: ImageSource.gallery);
                 if (image != null) {
                   print('이미지 선택 완료');
@@ -300,11 +430,26 @@ class _PaintPageState extends State<PaintPage> {
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
-            key: buttonKey,
-            onPressed: () {
+            onPressed: () async {
+              var originalImageByteData =
+                  await getOriginalImageByteData(selectedImage!);
+              var imageSize = await getImageSize(selectedImage!);
+
+              var drawingsByteData = await getDrawingsByteData(painter!);
+
+              if (originalImageByteData != null) {
+                print(originalImageByteData);
+              }
+
+              if (drawingsByteData != null) {
+                print(drawingsByteData);
+              }
+
               setState(() {});
+              await exportDrawings(context);
             },
-            child: Icon(Icons.delete),
+            heroTag: 'uniqueHeroTag1',
+            child: Icon(Icons.upload),
           ),
         ],
       ),
@@ -320,88 +465,85 @@ class _PaintPageState extends State<PaintPage> {
   void _addTextField(Offset offset) {
     final key = UniqueKey();
     keyList.add(key);
-    double positionX1 = offset.dx;
-    double positionY1 = offset.dy;
+    double positionX1;
+    double positionY1;
     late Positioned textField;
-    // 이전 위치를 기반으로 새로운 Positioned 위젯을 생성
-    textField = Positioned(
-      key: key,
-      left: positionX1,
-      top: positionY1,
-      child: Draggable(
-        child: Material(
-          child: Container(
-            width: 200,
-            height: 40,
-            color: Colors.grey,
-            child: TextField(
-              decoration: InputDecoration(
-                fillColor: Colors.black,
-                border: OutlineInputBorder(),
-                hintText: '내용을 입력하세요',
+    if (painter != null && painter!.mode == 'textMode') {
+      // 이전 위치를 기반으로 새로운 Positioned 위젯을 생성
+      textField = Positioned(
+        key: key,
+        left: positionX1 = offset.dx,
+        top: positionY1 = offset.dy,
+        child: Draggable(
+          child: Material(
+            child: Container(
+              width: 200,
+              height: 40,
+              color: Colors.grey,
+              child: TextField(
+                decoration: InputDecoration(
+                  fillColor: Colors.black,
+                  border: OutlineInputBorder(),
+                  hintText: '내용을 입력하세요',
+                ),
               ),
             ),
           ),
-        ),
-        feedback: Material(
-          child: Container(
-            width: 200,
-            height: 40,
-            color: Colors.grey.withOpacity(0.5),
-            child: TextField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Type something...',
+          feedback: Material(
+            child: Container(
+              width: 200,
+              height: 40,
+              color: Colors.grey.withOpacity(0.5),
+              child: TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Type something...',
+                ),
               ),
             ),
           ),
-        ),
-        onDragEnd: (details) {
-          setState(() {
-            positionX1 = details.offset.dx;
-            positionY1 = details.offset.dy;
-            // print('New positionX1: $positionX1');
-            // print('New positionY1: $positionY1');
-            // print(textFields);
+          onDragEnd: (details) {
+            setState(() {
+              positionX1 = details.offset.dx;
+              positionY1 = details.offset.dy;
+              // print('New positionX1: $positionX1');
+              // print('New positionY1: $positionY1');
+              // print(textFields);
 
-            final updatedTextField = Positioned(
-              left: positionX1,
-              top: positionY1,
-              child: textField.child,
-            );
+              final updatedTextField = Positioned(
+                left: positionX1,
+                top: positionY1,
+                child: textField.child,
+              );
 
-            int index = -1;
+              int index = -1;
 
-            void findKeyIndex() {
-              for (int i = 0; i < keyList.length; i++) {
-                if (keyList[i] == textField.key) {
-                  index = i;
-                  print('i $i');
-                  break;
-                } else {
-                  index = -1; // 키를 찾지 못한 경우 -1을 반환합니다.
+              void findKeyIndex() {
+                for (int i = 0; i < keyList.length; i++) {
+                  if (keyList[i] == textField.key) {
+                    index = i;
+                    print('i $i');
+                    break;
+                  } else {
+                    index = -1; // 키를 찾지 못한 경우 -1을 반환합니다.
+                  }
                 }
               }
-            }
 
-            findKeyIndex();
-            // print('UniqueKey(): ${UniqueKey()}');
-            // print('textField.key: ${textField.key}');
-            // print('key: ${key}');
-            // print('keyList: ${keyList}');
-            // print(textFields.indexOf(textField));
-            if (index != -1) {
-              textFields[index] = updatedTextField;
-            } else {
-              print('key 값이 없습니다');
-            }
-          });
-        },
-      ),
-    );
+              findKeyIndex();
 
-    setState(() {
-      textFields.add(textField);
-    });
+              if (index != -1) {
+                textFields[index] = updatedTextField;
+              } else {
+                print('key 값이 없습니다');
+              }
+            });
+          },
+        ),
+      );
+      setState(() {
+        textFields.add(textField);
+      });
+    }
   }
 }

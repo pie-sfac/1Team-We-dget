@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:wedget/model/info.dart';
 
 class MyPainter extends CustomPainter {
+  Size get size => _size;
+  Size _size = Size.zero;
   List<Info> lines = [];
   List<Offset> panLine = []; //임시 리스트
   List<List<Offset>> eraseLine = [];
@@ -11,7 +13,7 @@ class MyPainter extends CustomPainter {
 
   double sizes = 0.7;
   Color colors = Colors.black;
-  BlendMode blendModes = BlendMode.srcOver;
+  // BlendMode blendModes = BlendMode.srcOver;
 
   bool penMode = true;
   bool imgMode = true;
@@ -35,6 +37,8 @@ class MyPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _size = size; // Store the size
+    canvas.saveLayer(Offset.zero & size, Paint());
     var path = Path();
 
     for (final info in lines) {
@@ -42,7 +46,11 @@ class MyPainter extends CustomPainter {
         ..color = info.color
         ..strokeWidth = info.size
         ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke
+        ..blendMode = (info.color == const Color(0xfffffffe))
+            ? BlendMode.clear
+            : BlendMode.src;
 
       List<Offset> offsetList = info.offset;
 
@@ -71,11 +79,18 @@ class MyPainter extends CustomPainter {
           for (int i = 1; i < offsetList.length; i++) {
             path.lineTo(offsetList[i].dx, offsetList[i].dy);
           }
-
           canvas.drawPath(path, paint);
         }
       }
     }
+    // Paint clearPaint = Paint()
+    //   ..blendMode = BlendMode.dstOver
+    //   ..color = Colors.transparent;
+    // canvas.drawRect(
+    //   Rect.fromLTWH(0.0, 0.0, size.width, size.height),
+    //   clearPaint,
+    // );
+    canvas.restore();
   }
 
   @override
@@ -86,16 +101,20 @@ class MyPainter extends CustomPainter {
   void penModeChange() {
     penMode = true;
     mode = 'penMode';
+    if (mode == 'penMode') colors = Colors.black;
     print(penMode);
     print(mode);
   }
 
   void eraseModeChange() {
-    eraseMode = !eraseMode;
-    mode = eraseMode ? 'eraseMode' : 'penMode';
+    eraseMode = true;
+    mode = 'eraseMode';
+    colors = Color(0xFFFFFFFE);
     print(eraseMode);
     print(mode);
-    eraseMode ? blendModes = BlendMode.srcOut : blendModes = BlendMode.srcOver;
+    print(colors.value);
+    // eraseMode ? blendModes = BlendMode.clear : blendModes = BlendMode.src;
+    // print(blendModes);
   }
 
   void straightModeChange() {
@@ -179,30 +198,31 @@ class MyPainter extends CustomPainter {
 
   void panEnd() {
     var eraseGap = 10;
-    BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
+    // BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
     if (mode == 'eraseMode') {
-      eraseLine.add(panLine);
-      print(eraseLine);
-      for (var eraseOffsets in eraseLine) {
-        for (var lineInfo in lines) {
-          for (int i = 0; i < lineInfo.offset.length; i++) {
-            final offset = lineInfo.offset[i];
-            if (eraseOffsets.any((eraseOffset) {
-              return sqrt(pow((eraseOffset.dx - offset.dx), 2) +
-                      pow((eraseOffset.dy - offset.dy), 2)) <
-                  eraseGap;
-            })) {
-              // 선 지우기
-              Info lastLine = (lineInfo);
+      lines.last = (Info(panLine, sizes, colors, mode, modeOption));
+      // eraseLine.add(panLine);
+      // print(eraseLine);
+      // for (var eraseOffsets in eraseLine) {
+      //   for (var lineInfo in lines) {
+      //     for (int i = 0; i < lineInfo.offset.length; i++) {
+      //       final offset = lineInfo.offset[i];
+      //       if (eraseOffsets.any((eraseOffset) {
+      //         return sqrt(pow((eraseOffset.dx - offset.dx), 2) +
+      //                 pow((eraseOffset.dy - offset.dy), 2)) <
+      //             eraseGap;
+      //       })) {
+      //         // 선 지우기
+      //         Info lastLine = (lineInfo);
 
-              // 지운 선을 undoLines에 추가
-              undoLines = [Info.clone(lastLine)];
+      //         // 지운 선을 undoLines에 추가
+      //         undoLines = [Info.clone(lastLine)];
 
-              lineInfo.offset.clear();
-            }
-          }
-        }
-      }
+      //         lineInfo.offset.clear();
+      //       }
+      //     }
+      //   }
+      // }
     } else {
       lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     }
