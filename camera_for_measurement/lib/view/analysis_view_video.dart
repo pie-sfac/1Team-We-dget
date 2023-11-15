@@ -65,21 +65,29 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
             children: [
               if (ref.watch(videoProvider.notifier).state != null)
                 renderProcessedVideo(),
+              const SizedBox(height: 16),
               if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: _customPaints
-                        .map(
-                          (e) => Center(
-                            child: Container(
-                              width: MediaQuery.of(context).size.width / 5,
-                              height: MediaQuery.of(context).size.height / 5,
-                              decoration: BoxDecoration(
-                                border: Border.all(),
+                        .mapIndexed(
+                          (index, e) => Column(
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width / 5,
+                                  height:
+                                      MediaQuery.of(context).size.height / 5,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(),
+                                  ),
+                                  child: e,
+                                ),
                               ),
-                              child: e,
-                            ),
+                              Text(
+                                  '${DateTime.parse(ref.read(poseInfoProvider.notifier).state[index]['createdAt']).difference(DateTime.parse(ref.read(poseInfoProvider.notifier).state.first['createdAt']))}'),
+                            ],
                           ),
                         )
                         .toList(),
@@ -128,7 +136,6 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
 
   Widget renderProcessedVideo() {
     if (ref.watch(poseInfoProvider.notifier).state.isNotEmpty) {
-      // var _paintData = ref.watch(poseInfoProvider.notifier).state.first;
       var _multiplePaintData = ref.watch(poseInfoProvider.notifier).state;
 
       _customPaints = _multiplePaintData.map((_paintData) {
@@ -167,24 +174,11 @@ class _AnalysisViewState extends ConsumerState<AnalysisViewVideo> {
                         height: MediaQuery.of(context).size.height / 2,
                         child: CustomVideoPlayer(
                           video: ref.watch(videoProvider.notifier).state!,
+                          customPaints: _customPaints,
+                          isDetectOn: isDetectOn,
                         ),
                       ),
                     ),
-              if (isDetectOn &&
-                  ref.watch(poseInfoProvider.notifier).state.isNotEmpty)
-                Stack(
-                  children: _customPaints
-                      .map(
-                        (e) => Center(
-                          child: SizedBox(
-                            width: MediaQuery.of(context).size.width / 2,
-                            height: MediaQuery.of(context).size.height / 2,
-                            child: e,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
             ],
           ),
         ),

@@ -1,13 +1,19 @@
 import 'dart:io';
+import 'package:camera_for_measurement/provider/pose_info_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
-class CustomVideoPlayer extends StatefulWidget {
+class CustomVideoPlayer extends ConsumerStatefulWidget {
   final XFile video;
+  final List<CustomPaint> customPaints;
+  final bool isDetectOn;
 
   const CustomVideoPlayer({
     required this.video,
+    required this.customPaints,
+    required this.isDetectOn,
     Key? key,
   }) : super(key: key);
 
@@ -15,7 +21,7 @@ class CustomVideoPlayer extends StatefulWidget {
   _CustomVideoPlayerState createState() => _CustomVideoPlayerState();
 }
 
-class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
+class _CustomVideoPlayerState extends ConsumerState<CustomVideoPlayer> {
   VideoPlayerController? videoController;
   Duration currentPosition = Duration();
   bool showControls = false;
@@ -56,7 +62,7 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
     return AspectRatio(
       aspectRatio: videoController!.value.aspectRatio,
       child: GestureDetector(
-        onTap: (){
+        onTap: () {
           setState(() {
             showControls = !showControls;
           });
@@ -66,6 +72,7 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
             VideoPlayer(
               videoController!,
             ),
+            // Todo: 여기에 시간에 따라 customPaint 덧씌우기
             if (showControls)
               _Controls(
                 onReversePressed: onReversePressed,
