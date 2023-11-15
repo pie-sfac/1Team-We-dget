@@ -1,4 +1,6 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, sized_box_for_whitespace
+
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -7,8 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:report/model/exercise.dart';
 import 'package:report/model/exercise_item.dart';
 import 'package:report/model/exercise_set.dart';
+import 'package:report/model/pain_history.dart';
+import 'package:report/model/pain_history_item.dart';
 import 'package:report/model/person.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,8 +38,8 @@ class _MyAppState extends State<MyApp> {
 
     if(res.statusCode == 200) {
       person = Person.fromMap(res.data);
-      print(res.data['member']['name']);
-      print(person!.member.name);
+      // print(res.data['member']['name']);
+      // print(person!.member.name);
       return person;
     }
     return null;
@@ -118,6 +123,7 @@ class _MyAppState extends State<MyApp> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(10),
+                                      clipBehavior: Clip.antiAlias,
                                       child: Container(  // Card로 변경
                                         width: 100,
                                         height: MediaQuery.of(context).size.height,
@@ -130,7 +136,6 @@ class _MyAppState extends State<MyApp> {
                                           fit: BoxFit.cover,
                                         ),
                                       ),
-                                      clipBehavior: Clip.antiAlias,
                                     ),
                                     if (isVideo)
                                       Container(  // Card로 변경
@@ -274,15 +279,107 @@ class _MyAppState extends State<MyApp> {
                     person == null
                     ? CircularProgressIndicator(color: Colors.amber)
                     : Text('${person!.member.name} 회원님의 통증 변화 그래프입니다.'),
-                    Container(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Placeholder(),
-                    ),
+                    FutureBuilder(
+                      future: fetchData(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final PainHistory painHistory = snapshot.data!.painHistory;
+                          final List<PainHistoryItem> painHistoryItem = snapshot.data!.painHistory.items;
+                          List<FlSpot> _generateSpots() {
+                            return painHistoryItem.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final data = entry.value;
+                              final date = DateTime.parse(data.date);
+                              final level = data.level.toDouble();
+                              return FlSpot(index.toDouble(), level);
+                            }).toList();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: AspectRatio(
+                              aspectRatio: 1.7,
+                              child: Container(
+                                margin: EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.all(Radius.circular(10),),),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: LineChart(
+                                    LineChartData(
+                                      gridData: FlGridData(
+                                        show: true, 
+                                        drawVerticalLine: false,
+                                        getDrawingHorizontalLine: (value) {
+                                          return FlLine(
+                                            color: Colors.grey,
+                                            strokeWidth: 1
+                                          );
+                                        },
+                                      ),
+                                      titlesData: FlTitlesData(
+                                        show: true,
+                                        leftTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            reservedSize: 22,
+                                            interval: 2,
+                                            showTitles: true,
+                                            getTitlesWidget: (value, meta) {
+                                              final painLevel = value;
+                                              return FittedBox(
+                                                fit: BoxFit.cover,
+                                                child: Text(painLevel.toString(), style: TextStyle(color: Colors.grey, fontSize: 0.5), textAlign: TextAlign.center),                                                
+                                              );
+                                            },
+                                          )
+                                        ),
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            interval: 1,
+                                            showTitles: true,
+                                            getTitlesWidget: (value, meta) {
+                                              final date = painHistory.items[value.toInt()].date;
+                                              final formattedDate = DateFormat('yy.MM.dd').format(DateTime.parse(date));
+                                              // final screenWidth = MediaQuery.of(context).size.width;
+                                              // final fontSize = screenWidth * 0.001;
+                                              return FittedBox(
+                                                alignment: Alignment.center,
+                                                fit: BoxFit.fitWidth,
+                                                child: Text(formattedDate, style: TextStyle(color: Colors.grey, fontSize: 0.5), textAlign: TextAlign.center),
+                                              );
+                                            },
+                                          )
+                                        ),
+                                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      ),
+                                      borderData: FlBorderData(
+                                        show: false,
+                                      ),
+                                      minX: 0,
+                                      maxX: painHistoryItem.length.toDouble()-1,
+                                      minY: 0,
+                                      maxY: painHistory.items.fold(0, (max, item) => item.level > max ? item.level : max).toDouble(),
+                                      baselineY: -1,
+                                      extraLinesData: const ExtraLinesData(),
+                                      lineBarsData: [
+                                        LineChartBarData(
+                                          spots: _generateSpots(),
+                                          isCurved: true,
+                                          color: Colors.blue,
+                                          dotData: FlDotData(show: true),
+                                          belowBarData: BarAreaData(show: false),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return LinearProgressIndicator();
+                      }
+                    )
                   ],
                 ),
               ),
@@ -368,81 +465,95 @@ class _MyAppState extends State<MyApp> {
                         builder: (context, setState) {
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Center(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${snapshot.data!.member.name} 회원님의 운동 기록입니다.'),
-                                  DropdownButton<String>(
-                                    value: selectedExerciseName,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        selectedExerciseName = value!;
-                                        sets = exercises
-                                        .firstWhere((exerciseItem) => exerciseItem.exerciseName == selectedExerciseName)
-                                        .sets;
-                                      });
-                                    },
-                                    items: exercises.map((exerciseItem) => DropdownMenuItem(
-                                      child: Text(exerciseItem.exerciseName),
-                                      value: exerciseItem.exerciseName,
-                                    )).toList(),
-                                  ),
-                                  DataTable(
-                                    columns: const [
-                                      DataColumn(label: Text('세트')),
-                                      DataColumn(label: Text('무게')),
-                                      DataColumn(label: Text('횟수')),
-                                      DataColumn(label: Text('시간')),
-                                      DataColumn(label: Text('거리')),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${snapshot.data!.member.name} 회원님의 운동 기록입니다.'),
+                                DropdownButton<String>(
+                                  value: selectedExerciseName,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedExerciseName = value!;
+                                      sets = exercises
+                                      .firstWhere((exerciseItem) => exerciseItem.exerciseName == selectedExerciseName)
+                                      .sets;
+                                    });
+                                  },
+                                  items: exercises.map((exerciseItem) => DropdownMenuItem(
+                                    child: Text(exerciseItem.exerciseName),
+                                    value: exerciseItem.exerciseName,
+                                  )).toList(),
+                                ),
+                                Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  child: DataTable(
+                                    // border: TableBorder(verticalInside: BorderSide.none, horizontalInside: BorderSide.none),
+                                    // decoration: BoxDecoration(border: Border.all(color: Colors.transparent)),
+                                    showBottomBorder: true,
+                                    columnSpacing: 0.0,
+                                    horizontalMargin: 0.0,
+                                    columns: [
+                                      DataColumn(label: Expanded(child: Text('세트', textAlign: TextAlign.center,)),),
+                                      DataColumn(label: Expanded(child: Text('무게', textAlign: TextAlign.center,)),),
+                                      DataColumn(label: Expanded(child: Text('횟수', textAlign: TextAlign.center,)),),
+                                      DataColumn(label: Expanded(child: Text('시간', textAlign: TextAlign.center,)),),
+                                      DataColumn(label: Expanded(child: Text('거리', textAlign: TextAlign.center,)),),
                                     ],
                                     rows: showAllRows
                                       ? sets.map((set) => DataRow(
                                           cells: [
-                                            DataCell(Text('${set.setNum}')),
+                                            DataCell(Center(child: Text('${set.setNum}', textAlign: TextAlign.center,))),
                                             set.weight == null
-                                            ? DataCell(Text('-'))
-                                            : DataCell(Text('${set.weight}kg')),
+                                            ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,)))
+                                            : DataCell(Center(child: Text('${set.weight}kg', textAlign: TextAlign.center,))),
                                             set.repeat == null
-                                            ? DataCell(Text('-'))
-                                            : DataCell(Text('${set.repeat}회')),
+                                            ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,)))
+                                            : DataCell(Center(child: Text('${set.repeat}회', textAlign: TextAlign.center,))),
                                             set.time == null
-                                            ? DataCell(Text('-'))
-                                            : DataCell(Text('${set.time}')),
+                                            ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,)))
+                                            : DataCell(Center(child: Text('${set.time}', textAlign: TextAlign.center,))),
                                             set.distance == null
-                                            ? DataCell(Text('-'))
-                                            : DataCell(Text('${set.distance}')),
+                                            ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,)))
+                                            : DataCell(Center(child: Text('${set.distance}', textAlign: TextAlign.center,))),
                                           ],
                                         )).toList()
                                       : sets
                                         .take(4)
                                         .map((set) => DataRow(
                                               cells: [
-                                                DataCell(Text('${set.setNum}')),
-                                                set.weight == null ? DataCell(Text('-')) : DataCell(Text('${set.weight}kg')),
-                                                set.repeat == null ? DataCell(Text('-')) : DataCell(Text('${set.repeat}회')),
-                                                set.time == null ? DataCell(Text('-')) : DataCell(Text('${set.time}')),
-                                                set.distance == null ? DataCell(Text('-')) : DataCell(Text('${set.distance}')),
+                                                DataCell(Center(child: Text('${set.setNum}', textAlign: TextAlign.center,))),
+                                                set.weight == null 
+                                                ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,))) 
+                                                : DataCell(Center(child: Text('${set.weight}kg', textAlign: TextAlign.center,))),
+                                                set.repeat == null 
+                                                ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,))) 
+                                                : DataCell(Center(child: Text('${set.repeat}회', textAlign: TextAlign.center,))),
+                                                set.time == null 
+                                                ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,))) 
+                                                : DataCell(Center(child: Text('${set.time}', textAlign: TextAlign.center,))),
+                                                set.distance == null 
+                                                ? DataCell(Center(child: Text('-', textAlign: TextAlign.center,))) 
+                                                : DataCell(Center(child: Text('${set.distance}', textAlign: TextAlign.center,))),
                                               ],
                                             ))
                                         .toList(), 
                                   ),
-                                  Center(
-                                    child: IconButton(
-                                      icon: Icon(
-                                        showAllRows
-                                            ? CupertinoIcons.chevron_up
-                                            : CupertinoIcons.chevron_down,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          showAllRows = !showAllRows;
-                                        });
-                                      },
+                                ),
+                                Center(
+                                  child: IconButton(
+                                    icon: Icon(
+                                      showAllRows
+                                          ? CupertinoIcons.chevron_up
+                                          : CupertinoIcons.chevron_down,
                                     ),
+                                    onPressed: () {
+                                      setState(() {
+                                        showAllRows = !showAllRows;
+                                      });
+                                    },
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           );
                         }
@@ -464,16 +575,60 @@ class _MyAppState extends State<MyApp> {
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
-                        children: List.generate(3, (index) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Column(
                             children: [
-                              CircleAvatar(),
-                              Text('링크복사'),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey, width: 1),
+                                    color: Colors.transparent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    iconSize: 28,
+                                    color: Colors.blue,
+                                    icon: Icon(Icons.link),
+                                    onPressed: () {},
+                                  ),
+                                ),
+                              ),
+                              Text("링크 복사")
                             ],
                           ),
-                        ),),
+                          Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey, width: 1),
+                                    color: Colors.transparent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    iconSize: 28,
+                                    color: Colors.yellow,
+                                    icon: Icon(Icons.link),
+                                    onPressed: () {},
+                                  ),
+                                ),
+                              ),
+                              Text("카카오톡")
+                            ],
+                          )
+                        ]
+                        // children: List.generate(3, (index) => Padding(
+                        //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.center,
+                        //     children: [
+                        //       CircleAvatar(),
+                        //       Text('링크복사'),
+                        //     ],
+                        //   ),
+                        // ),),
                       ),
                     ),
                   ],
@@ -494,7 +649,7 @@ class _MyAppState extends State<MyApp> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('포인티센터'),
+                        Text('포인티 센터'),
                         Text('서울시 남부순환로 1801, 라피스 빌딩 8층'),
                         Text('02-840-9002'),
                         Row(
@@ -502,7 +657,7 @@ class _MyAppState extends State<MyApp> {
                             Text('카카오톡 문의 :'),
                             TextButton(
                               onPressed: () {},
-                              child: Text('포인티 센터 바로가기'),
+                              child: Text('포인티 센터 바로가기', style: TextStyle(color: Colors.black, decoration: TextDecoration.underline),),
                             ),
                           ],
                         ),
@@ -544,4 +699,3 @@ class _MyAppState extends State<MyApp> {
     return ""; // Handle cases where the URL doesn't match the expected format
   }
 }
-

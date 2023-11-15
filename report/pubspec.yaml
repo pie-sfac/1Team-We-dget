@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  fl_chart: ^0.64.0
   intl: ^0.18.1
   cached_network_image: ^3.3.0
   dio: ^5.3.3
