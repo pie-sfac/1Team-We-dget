@@ -103,14 +103,14 @@ class _PaintPageState extends State<PaintPage> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Export Confirmation'),
-          content: Text('Do you want to export the drawings?'),
+          title: Text('드로잉 내보내기'),
+          content: Text('드로잉을 내보내시겠습니까?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // 닫기
               },
-              child: Text('Cancel'),
+              child: Text('아니오'),
             ),
             TextButton(
               onPressed: () {
@@ -125,7 +125,7 @@ class _PaintPageState extends State<PaintPage> {
                   ),
                 ); // 닫기
               },
-              child: Text('Export'),
+              child: Text('네'),
             ),
           ],
         ),
@@ -191,23 +191,23 @@ class _PaintPageState extends State<PaintPage> {
                               MyPainter(), // null일 때 MyPainter 인스턴스를 사용하도록 수정
                         ),
                       ),
-                      if (painter!.lines.isNotEmpty)
-                        for (var info in painter!.lines)
-                          if (info.mode == 'textMode')
-                            Container(
-                              child: Stack(
-                                children: [
-                                  ...textFields, // Add your textFields here
-                                ],
-                              ),
-                            ),
+                      // if (painter!.lines.isNotEmpty)
+                      //   for (var info in painter!.lines)
+                      //     if (info.mode == 'textMode')
+                      //       Container(
+                      //         child: Stack(
+                      //           children: [
+                      //             ...textFields, // Add your textFields here
+                      //           ],
+                      //         ),
+                      //       ),
                       painter?.mode != 'touchMode'
                           ? GestureDetector(
                               behavior: HitTestBehavior.translucent,
                               onPanStart: (s) {
                                 setState(() {
-                                  if (painter?.mode == 'textMode')
-                                    _addTextField(s.localPosition);
+                                  // if (painter?.mode == 'textMode')
+                                  //   _addTextField(s.localPosition);
                                   painter?.panStart(s.localPosition);
                                   // _addTextField(s.localPosition);
                                 });
@@ -235,6 +235,26 @@ class _PaintPageState extends State<PaintPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  Container(
+                    width: 100,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(painter!.mode),
+                        painter!.modeOption != '' &&
+                                painter!.mode != 'eraseMode' &&
+                                painter!.mode != 'textMode' &&
+                                painter!.mode != 'touchMode'
+                            ? Container(
+                                margin: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  painter!.modeOption,
+                                ),
+                              )
+                            : SizedBox(),
+                      ],
+                    ),
+                  ),
                   Slider(
                     value: sliderValue,
                     min: 0.7,
@@ -267,8 +287,9 @@ class _PaintPageState extends State<PaintPage> {
                   RawMaterialButton(
                     onPressed: () {
                       setState(() {
-                        if (painter!.mode != 'eraseMode')
+                        if (painter!.mode != 'eraseMode') {
                           painter?.eraseModeChange();
+                        }
                       });
                     },
                     elevation: 2.0,
@@ -293,18 +314,22 @@ class _PaintPageState extends State<PaintPage> {
           SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () {
-              if (painter!.mode != 'circleMode') {
-                painter?.circleModeChange();
-              }
+              setState(() {
+                if (painter!.mode != 'circleMode') {
+                  painter?.circleModeChange();
+                }
+              });
             },
             child: Icon(Icons.circle_outlined),
           ),
           SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () {
-              if (painter!.mode != 'straightMode') {
-                painter?.straightModeChange();
-              }
+              setState(() {
+                if (painter!.mode != 'straightMode') {
+                  painter?.straightModeChange();
+                }
+              });
             },
             child: Icon(Icons.horizontal_rule),
           ),
@@ -313,6 +338,7 @@ class _PaintPageState extends State<PaintPage> {
             onPressed: () {
               setState(() {
                 painter?.colorChangeRed();
+                painter?.lastModeUse();
                 if (painter!.mode == 'eraseMode') {
                   painter?.eraseModeChange();
                 }
@@ -325,6 +351,7 @@ class _PaintPageState extends State<PaintPage> {
             onPressed: () {
               setState(() {
                 painter?.colorChangeBlack();
+                painter?.lastModeUse();
                 if (painter!.mode == 'eraseMode') {
                   painter?.eraseModeChange();
                 }
@@ -337,21 +364,24 @@ class _PaintPageState extends State<PaintPage> {
             onPressed: () {
               setState(() {
                 painter?.opacityModeChange();
+                painter?.lastModeUse();
               });
             },
-            child: Icon(Icons.blur_on),
+            child: painter?.modeOption == 'opacityMode'
+                ? Icon(Icons.blur_off)
+                : Icon(Icons.blur_on),
           ),
-          SizedBox(height: 12),
-          FloatingActionButton.small(
-            onPressed: () {
-              setState(() {
-                if (painter!.mode != 'textMode') {
-                  painter?.textModeChange();
-                }
-              });
-            },
-            child: Icon(Icons.text_fields_sharp),
-          ),
+          // SizedBox(height: 12),
+          // FloatingActionButton.small(
+          //   onPressed: () {
+          //     setState(() {
+          //       if (painter!.mode != 'textMode') {
+          //         painter?.textModeChange();
+          //       }
+          //     });
+          //   },
+          //   child: Icon(Icons.text_fields_sharp),
+          // ),
           SizedBox(height: 12),
           FloatingActionButton.small(
             onPressed: () {
@@ -429,28 +459,30 @@ class _PaintPageState extends State<PaintPage> {
             child: Icon(Icons.touch_app),
           ),
           SizedBox(height: 12),
-          FloatingActionButton.small(
-            onPressed: () async {
-              var originalImageByteData =
-                  await getOriginalImageByteData(selectedImage!);
-              var imageSize = await getImageSize(selectedImage!);
+          painter != null && selectedImage != null
+              ? FloatingActionButton.small(
+                  onPressed: () async {
+                    var originalImageByteData =
+                        await getOriginalImageByteData(selectedImage!);
+                    var imageSize = await getImageSize(selectedImage!);
 
-              var drawingsByteData = await getDrawingsByteData(painter!);
+                    var drawingsByteData = await getDrawingsByteData(painter!);
 
-              if (originalImageByteData != null) {
-                print(originalImageByteData);
-              }
+                    if (originalImageByteData != null) {
+                      print(originalImageByteData);
+                    }
 
-              if (drawingsByteData != null) {
-                print(drawingsByteData);
-              }
+                    if (drawingsByteData != null) {
+                      print(drawingsByteData);
+                    }
 
-              setState(() {});
-              await exportDrawings(context);
-            },
-            heroTag: 'uniqueHeroTag1',
-            child: Icon(Icons.upload),
-          ),
+                    setState(() {});
+                    await exportDrawings(context);
+                  },
+                  heroTag: 'uniqueHeroTag1',
+                  child: Icon(Icons.upload),
+                )
+              : SizedBox(),
         ],
       ),
     );
@@ -460,14 +492,14 @@ class _PaintPageState extends State<PaintPage> {
   List<UniqueKey> keyList = [];
   final UniqueKey key = UniqueKey();
 
-  // List<TextField> MytextFields = [];
-
   void _addTextField(Offset offset) {
     final key = UniqueKey();
     keyList.add(key);
     double positionX1;
     double positionY1;
     late Positioned textField;
+    late TextEditingController textController = TextEditingController();
+
     if (painter != null && painter!.mode == 'textMode') {
       // 이전 위치를 기반으로 새로운 Positioned 위젯을 생성
       textField = Positioned(
@@ -481,6 +513,7 @@ class _PaintPageState extends State<PaintPage> {
               height: 40,
               color: Colors.grey,
               child: TextField(
+                controller: textController,
                 decoration: InputDecoration(
                   fillColor: Colors.black,
                   border: OutlineInputBorder(),
@@ -495,9 +528,10 @@ class _PaintPageState extends State<PaintPage> {
               height: 40,
               color: Colors.grey.withOpacity(0.5),
               child: TextField(
+                controller: textController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'Type something...',
+                  hintText: '내용을 입력하세요',
                 ),
               ),
             ),
@@ -506,9 +540,6 @@ class _PaintPageState extends State<PaintPage> {
             setState(() {
               positionX1 = details.offset.dx;
               positionY1 = details.offset.dy;
-              // print('New positionX1: $positionX1');
-              // print('New positionY1: $positionY1');
-              // print(textFields);
 
               final updatedTextField = Positioned(
                 left: positionX1,

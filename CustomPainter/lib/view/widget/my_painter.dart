@@ -13,7 +13,7 @@ class MyPainter extends CustomPainter {
 
   double sizes = 0.7;
   Color colors = Colors.black;
-  // BlendMode blendModes = BlendMode.srcOver;
+  Color lastcolor = Colors.black;
 
   bool penMode = true;
   bool imgMode = true;
@@ -24,6 +24,7 @@ class MyPainter extends CustomPainter {
   bool touchMode = false;
   bool textMode = false;
   String mode = 'penMode';
+  String lastMode = 'penMode';
   String modeOption = '';
 
   List<Offset> circleLine = [];
@@ -43,14 +44,15 @@ class MyPainter extends CustomPainter {
 
     for (final info in lines) {
       Paint paint = Paint()
-        ..color = info.color
+        ..color = (info.modeOption == 'opacityMode')
+            ? info.color.withOpacity(0.5)
+            : info.color
         ..strokeWidth = info.size
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke
-        ..blendMode = (info.color == const Color(0xfffffffe))
-            ? BlendMode.clear
-            : BlendMode.src;
+        ..blendMode =
+            (info.mode == 'eraseMode') ? BlendMode.clear : BlendMode.srcOver;
 
       List<Offset> offsetList = info.offset;
 
@@ -83,13 +85,7 @@ class MyPainter extends CustomPainter {
         }
       }
     }
-    // Paint clearPaint = Paint()
-    //   ..blendMode = BlendMode.dstOver
-    //   ..color = Colors.transparent;
-    // canvas.drawRect(
-    //   Rect.fromLTWH(0.0, 0.0, size.width, size.height),
-    //   clearPaint,
-    // );
+
     canvas.restore();
   }
 
@@ -101,20 +97,17 @@ class MyPainter extends CustomPainter {
   void penModeChange() {
     penMode = true;
     mode = 'penMode';
-    if (mode == 'penMode') colors = Colors.black;
     print(penMode);
     print(mode);
+    lastModeSave();
+    lastColorUse();
   }
 
   void eraseModeChange() {
     eraseMode = true;
     mode = 'eraseMode';
-    colors = Color(0xFFFFFFFE);
     print(eraseMode);
     print(mode);
-    print(colors.value);
-    // eraseMode ? blendModes = BlendMode.clear : blendModes = BlendMode.src;
-    // print(blendModes);
   }
 
   void straightModeChange() {
@@ -122,6 +115,8 @@ class MyPainter extends CustomPainter {
     mode = 'straightMode';
     print(straightMode);
     print(mode);
+    lastModeSave();
+    lastColorUse();
   }
 
   void circleModeChange() {
@@ -129,12 +124,14 @@ class MyPainter extends CustomPainter {
     mode = 'circleMode';
     print(circleMode);
     print(mode);
+    lastModeSave();
+    lastColorUse();
   }
 
   void opacityModeChange() {
+    lastColorUse();
     opacityMode = !opacityMode;
     modeOption = opacityMode ? 'opacityMode' : '';
-    colors = opacityMode ? colors.withOpacity(0.5) : colors.withOpacity(1);
     print(opacityMode);
     print(modeOption);
     print(mode);
@@ -156,6 +153,21 @@ class MyPainter extends CustomPainter {
 
   void imgDeleteModeChange() {
     imgMode = !imgMode;
+  }
+
+  void lastModeSave() {
+    if (mode != 'textMode' && mode != 'touchMode' && mode != 'eraseMode') {
+      lastMode = mode;
+      print('lastMode: $lastMode');
+    }
+  }
+
+  void lastModeUse() {
+    mode = lastMode;
+  }
+
+  void lastColorUse() {
+    colors = lastcolor;
   }
 
   void undo() {
@@ -201,28 +213,6 @@ class MyPainter extends CustomPainter {
     // BlendMode blendMode = eraseMode ? BlendMode.clear : BlendMode.src;
     if (mode == 'eraseMode') {
       lines.last = (Info(panLine, sizes, colors, mode, modeOption));
-      // eraseLine.add(panLine);
-      // print(eraseLine);
-      // for (var eraseOffsets in eraseLine) {
-      //   for (var lineInfo in lines) {
-      //     for (int i = 0; i < lineInfo.offset.length; i++) {
-      //       final offset = lineInfo.offset[i];
-      //       if (eraseOffsets.any((eraseOffset) {
-      //         return sqrt(pow((eraseOffset.dx - offset.dx), 2) +
-      //                 pow((eraseOffset.dy - offset.dy), 2)) <
-      //             eraseGap;
-      //       })) {
-      //         // 선 지우기
-      //         Info lastLine = (lineInfo);
-
-      //         // 지운 선을 undoLines에 추가
-      //         undoLines = [Info.clone(lastLine)];
-
-      //         lineInfo.offset.clear();
-      //       }
-      //     }
-      //   }
-      // }
     } else {
       lines.last = (Info(panLine, sizes, colors, mode, modeOption));
     }
@@ -232,22 +222,16 @@ class MyPainter extends CustomPainter {
   }
 
   void colorChangeRed() {
-    if (modeOption == 'opacityMode') {
-      colors = Colors.red.withOpacity(0.5);
-    } else {
-      colors = Colors.red;
-    }
-    mode = 'penMode';
+    lastModeSave();
+    colors = Colors.red;
+    lastcolor = colors;
     print(colors);
   }
 
   void colorChangeBlack() {
-    if (modeOption == 'opacityMode') {
-      colors = Colors.black.withOpacity(0.5);
-    } else {
-      colors = Colors.black;
-    }
-    mode = 'penMode';
+    lastModeSave();
+    colors = Colors.black;
+    lastcolor = colors;
     print(colors);
   }
 
