@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:camera_for_measurement/component/pose_painter.dart';
 import 'package:camera_for_measurement/provider/pose_info_provider.dart';
+import 'package:camera_for_measurement/view/analysis_view_video.dart';
 import 'package:camera_for_measurement/view/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -15,16 +14,16 @@ import '../common/const/custom_colors.dart';
 import '../common/const/custom_text_styles.dart';
 import '../common/const/custom_units.dart';
 import '../provider/picture_provider.dart';
-import 'analysis_view.dart';
+import 'analysis_view_camera.dart';
 
-class PoseDetectorView extends ConsumerStatefulWidget {
-  const PoseDetectorView({super.key});
+class OnCameraView extends ConsumerStatefulWidget {
+  const OnCameraView({super.key});
 
   @override
-  ConsumerState<PoseDetectorView> createState() => _PoseDetectorViewState();
+  ConsumerState<OnCameraView> createState() => _PoseDetectorViewState();
 }
 
-class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
+class _PoseDetectorViewState extends ConsumerState<OnCameraView> {
   static List<CameraDescription> _cameras = [];
   int _cameraIndex = -1;
   CameraController? _controller;
@@ -47,6 +46,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
   bool _canProcess = true;
   bool _isBusy = false;
   bool _isTakingPicture = false;
+  bool _isTakingVideo = false;
   CustomPaint? _customPaint;
   var _cameraLensDirection = CameraLensDirection.back;
 
@@ -56,6 +56,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
 
     _initialize();
     _isTakingPicture = false;
+    _isTakingVideo = false;
   }
 
   @override
@@ -63,7 +64,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     _canProcess = false;
     _poseDetector.close();
 
-    _stopLiveFeed();
+    // _stopLiveFeed();
     super.dispose();
   }
 
@@ -140,6 +141,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
                                 children: [
                                   Expanded(child: _detectionSwitch()),
                                   Expanded(child: _cameraButton()),
+                                  Expanded(child: _videoButton()),
                                   Expanded(child: _switchLiveCameraToggle()),
                                 ],
                               ),
@@ -284,7 +286,25 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
         child: Icon(
           Icons.fiber_manual_record,
           color: CustomColors.Gray_50,
-          size: 60,
+          size: 70,
+        ),
+      ),
+    );
+  }
+
+  Widget _videoButton() {
+    return SizedBox(
+      height: 70.0,
+      width: 70.0,
+      child: FloatingActionButton(
+        heroTag: Object(),
+        elevation: 0,
+        onPressed: _recordAndShowVideo,
+        backgroundColor: CustomColors.Erro,
+        child: Icon(
+          Icons.fiber_manual_record,
+          color: CustomColors.Gray_50,
+          size: 70,
         ),
       ),
     );
@@ -394,7 +414,31 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => const AnalysisView(),
+        builder: (_) => const AnalysisViewCamera(),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _recordAndShowVideo() async {
+    _isTakingVideo = true;
+
+    ref.read(poseInfoProvider.notifier).state.clear();
+
+    await _controller?.startVideoRecording();
+    print('record started');
+    /// Take on video for 5 seconds
+    await Future.delayed(const Duration(seconds: 5));
+
+    final video = await _controller?.stopVideoRecording();
+    print('record finished');
+
+    ref.read(videoProvider.notifier).state = video;
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const AnalysisViewVideo(),
       ),
       (route) => false,
     );
@@ -415,8 +459,6 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     if (inputImage == null) return;
 
     _processImage(inputImage);
-
-    ref.read(sizeProvider.notifier).state = inputImage.metadata!.size;
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {
@@ -484,28 +526,6 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  // data extraction
-  void _extractData(poses, inputImage, posesToString) {
-    if (_isTakingPicture && poses.isNotEmpty) {
-      var info = {
-        'createdAt': '${DateTime.now()}',
-        'Pose': poses.first,
-        'inputImage': inputImage,
-        'cameraLensDirection': _cameraLensDirection,
-      };
-
-      posesToString.add(info);
-
-      if (posesToString.isNotEmpty) {
-        ref.read(poseInfoProvider.notifier).state = [
-          ...posesToString,
-        ];
-      }
-
-      _isTakingPicture = false;
-    }
-  }
-
   Future<void> _processImage(
     InputImage inputImage,
   ) async {
@@ -514,12 +534,23 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     _isBusy = true;
     List<Pose> poses = await _poseDetector.processImage(inputImage);
 
-    List<Map<String, dynamic>> posesToString = [];
+    Future.delayed(const Duration(seconds: 2), () {
+      _isTakingVideo = false;
+    });
+
+    if (poses.isNotEmpty) {
+      var info = {
+        'createdAt': '${DateTime.now()}',
+        'Pose': poses.first,
+        'inputImage': inputImage,
+        'cameraLensDirection': _cameraLensDirection,
+      };
+
+      ref.read(poseInfoProvider.notifier).state.add(info);
+    }
 
     if (inputImage.metadata?.size != null &&
         inputImage.metadata?.rotation != null) {
-      _extractData(poses, inputImage, posesToString);
-
       final painter = PosePainter(
         poses,
         inputImage.metadata!.size,
@@ -530,6 +561,7 @@ class _PoseDetectorViewState extends ConsumerState<PoseDetectorView> {
     } else {
       _customPaint = null;
     }
+
     _isBusy = false;
     if (mounted) {
       setState(() {});

@@ -1,8 +1,9 @@
 import 'package:camera_for_measurement/common/const/custom_colors.dart';
 import 'package:camera_for_measurement/common/const/custom_text_styles.dart';
 import 'package:camera_for_measurement/common/const/custom_units.dart';
-import 'package:camera_for_measurement/view/analysis_view.dart';
-import 'package:camera_for_measurement/view/pose_detector_view.dart';
+import 'package:camera_for_measurement/view/analysis_view_camera.dart';
+import 'package:camera_for_measurement/view/analysis_view_video.dart';
+import 'package:camera_for_measurement/view/on_camera_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,7 @@ class _HomeState extends ConsumerState<Home> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PoseDetectorView(),
+                      builder: (context) => const OnCameraView(),
                     ),
                   );
                 },
@@ -49,12 +50,27 @@ class _HomeState extends ConsumerState<Home> {
                 onPressed: () {
                   Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
-                        builder: (context) => const AnalysisView(),
+                        builder: (context) => const AnalysisViewCamera(),
                       ),
                       (route) => false);
                 },
                 child: Text(
                   'Pose Analysis (사진 보기)',
+                  style: CustomTextStyles.Body1.copyWith(
+                    color: CustomColors.Gray_50,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const AnalysisViewVideo(),
+                      ),
+                          (route) => false);
+                },
+                child: Text(
+                  'Pose Analysis (영상 보기)',
                   style: CustomTextStyles.Body1.copyWith(
                     color: CustomColors.Gray_50,
                   ),
