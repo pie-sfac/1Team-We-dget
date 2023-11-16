@@ -138,30 +138,6 @@ class SideBar extends StatelessWidget {
             onPressed: toggleGrid, // Call the new callback function
             child: Text(isGridActive ? 'Grid 숨기기' : 'Grid 보이기'),
           ),
-          Column(
-            children: [
-              ListTile(
-                title: const Text('직선 그래프'),
-                leading: Radio(
-                  value: GraphType.line,
-                  groupValue: selectedGraphType,
-                  onChanged: (GraphType? value) {
-                    onGraphTypeChanged(value!);
-                  },
-                ),
-              ),
-              ListTile(
-                title: const Text('곡선 그래프'),
-                leading: Radio(
-                  value: GraphType.curve,
-                  groupValue: selectedGraphType,
-                  onChanged: (GraphType? value) {
-                    onGraphTypeChanged(value!);
-                  },
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -251,13 +227,18 @@ class _BodyWeightGraphState extends State<BodyWeightGraph> {
       ),
     );
 
+    Widget x_canvas = InteractiveViewer(child: CustomPaint());
+    Widget y_canvas = InteractiveViewer(child: CustomPaint());
+
     return Container(
-      margin: EdgeInsets.all(20),
+      margin: EdgeInsets.all(50),
       child: GestureDetector(
         child: Stack(
           children: [
             axis, // Basic axis widget
             graph, // Scalable graph widget
+            x_canvas,
+            y_canvas,
           ],
         ),
       ),
@@ -289,7 +270,7 @@ class LineAndPointPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     var pointPaint = Paint()
-      ..color = const Color(0xFF2D62EA)
+      ..color = const Color(0xFF6691FF)
       ..strokeWidth = 20
       ..style = PaintingStyle.fill;
 
@@ -318,20 +299,18 @@ class LineAndPointPainter extends CustomPainter {
       return (value - minY) / (maxY - minY) * graphHeight;
     }).toList();
 
+    double yGridStep = 5; // Assuming 10 grid lines as before
+
     // Draw the grid if showGrid is true
     if (showGrid) {
       double xGridStep =
-          graphWidth / 10; // Adjust the number of grid lines as needed
-      double yGridStep = graphHeight / 10;
-
-      for (double i = margin; i <= size.width - margin; i += xGridStep) {
-        canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-      }
-      for (double j = margin; j <= size.height - margin; j += yGridStep) {
-        canvas.drawLine(Offset(0, j), Offset(size.width, j), gridPaint);
+          graphWidth / (data.length - 1); // Adjusted for each data point
+      for (int i = 0; i < data.length; i++) {
+        // Adjusted loop range
+        double x = margin + i * xGridStep;
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
       }
     }
-
     // Draw the graph line and points
     for (int i = 0; i < scaledData.length; i++) {
       if (i < scaledData.length - 1) {
@@ -351,18 +330,31 @@ class LineAndPointPainter extends CustomPainter {
         // Draw the label if showPointLabels is true
         if (showPointLabels) {
           double value = data[i]['value'] as double;
-          String label = value.toStringAsFixed(1); // Format the value as needed
+          String label = '(${data[i]['label']}, ${value.toStringAsFixed(1)})';
           textPainter.text = TextSpan(
             text: label,
             style: TextStyle(color: Colors.black, fontSize: 16),
           );
           textPainter.layout();
           textPainter.paint(
-              canvas,
-              point +
-                  Offset(-textPainter.width / 2,
-                      -20)); // Adjust the offset as needed
+            canvas,
+            point +
+                Offset(
+                    -textPainter.width / 2, -20), // Adjust the offset as needed
+          );
         }
+      }
+    }
+
+    if (showGrid) {
+      // Draw the y-grid lines based on the calculated yGridStep
+      for (int i = 0; i <= 10; i++) {
+        double yGridValue = minY + i * yGridStep;
+        double y = size.height -
+            margin -
+            ((yGridValue - minY) / (maxY - minY) * graphHeight);
+        canvas.drawLine(
+            Offset(0, y), Offset(size.width - margin, y), gridPaint);
       }
     }
   }
@@ -415,110 +407,4 @@ class AxisPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class CurvePainter extends CustomPainter {
-  final bool showPoint;
-  final bool showGrid;
-  final bool showPointLabels;
-  final List<Map<String, dynamic>> data;
-  final double margin;
-
-  CurvePainter({
-    required this.showPoint,
-    required this.data,
-    required this.showGrid,
-    required this.showPointLabels,
-    this.margin = 50,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var curvePaint = Paint()
-      ..color = const Color(0xFF6691FF)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    var pointPaint = Paint()
-      ..color = const Color(0xFF2D62EA)
-      ..strokeWidth = 20
-      ..style = PaintingStyle.fill;
-
-    var textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
-
-    var gridPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.3)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    double graphWidth = size.width - margin * 2;
-    double graphHeight = size.height - margin * 2;
-    double xStep = graphWidth / (data.length - 1);
-    double maxY = data
-        .map((e) => e['value'] as double)
-        .reduce((value, element) => value > element ? value : element);
-    double minY = data
-        .map((e) => e['value'] as double)
-        .reduce((value, element) => value < element ? value : element);
-
-    var scaledData = data.map((pointData) {
-      double value = pointData['value'] as double;
-      return (value - minY) / (maxY - minY) * graphHeight;
-    }).toList();
-
-    if (showGrid) {
-      double xGridStep = graphWidth / 10;
-      double yGridStep = graphHeight / 10;
-
-      for (double i = margin; i <= size.width - margin; i += xGridStep) {
-        canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-      }
-      for (double j = margin; j <= size.height - margin; j += yGridStep) {
-        canvas.drawLine(Offset(0, j), Offset(size.width, j), gridPaint);
-      }
-    }
-
-    Path path = Path();
-    for (int i = 0; i < scaledData.length; i++) {
-      double x = margin + i * xStep;
-      double y = size.height - margin - scaledData[i];
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.quadraticBezierTo(
-          margin + (i - 0.5) * xStep,
-          size.height - margin - scaledData[i - 1],
-          x,
-          y,
-        );
-      }
-
-      if (showPoint) {
-        Offset point =
-            Offset(margin + i * xStep, size.height - margin - scaledData[i]);
-        canvas.drawCircle(point, 5, pointPaint);
-
-        if (showPointLabels) {
-          String label = data[i]['value'].toStringAsFixed(1);
-          textPainter.text = TextSpan(
-            text: label,
-            style: TextStyle(color: Colors.black, fontSize: 16),
-          );
-          textPainter.layout();
-          textPainter.paint(
-            canvas,
-            Offset(x - textPainter.width / 2, y - 20),
-          );
-        }
-      }
-    }
-
-    canvas.drawPath(path, curvePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
