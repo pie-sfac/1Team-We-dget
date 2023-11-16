@@ -30,8 +30,15 @@ class Info {
   Color color;
   String mode;
   String modeOption;
+  String? text;
 
-  Info(this.offset, this.size, this.color, this.mode, this.modeOption);
+  Info(
+    this.offset,
+    this.size,
+    this.color,
+    this.mode,
+    this.modeOption,
+  );
 
   Info.clone(Info other)
       : offset = List.from(other.offset),
