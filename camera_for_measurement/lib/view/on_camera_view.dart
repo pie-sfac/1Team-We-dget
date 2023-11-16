@@ -427,7 +427,8 @@ class _PoseDetectorViewState extends ConsumerState<OnCameraView> {
 
     await _controller?.startVideoRecording();
     print('record started');
-    await Future.delayed(const Duration(seconds: 2));
+    /// Take on video for 5 seconds
+    await Future.delayed(const Duration(seconds: 5));
 
     final video = await _controller?.stopVideoRecording();
     print('record finished');
